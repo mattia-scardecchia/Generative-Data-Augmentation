@@ -1,0 +1,181 @@
+cifar10:
+  num_classes: 10
+  num_channels: 3
+  height: 32
+  width: 32
+  mean:
+    - 0.4914
+    - 0.4822
+    - 0.4465
+  std:
+    - 0.2023
+    - 0.1994
+    - 0.2010
+  class_names:
+    - airplane
+    - automobile
+    - bird
+    - cat
+    - deer
+    - dog
+    - frog
+    - horse
+    - ship
+    - truck
+
+cifar100:
+  num_classes: 100
+  num_channels: 3
+  height: 32
+  width: 32
+  mean:
+    - 0.5071
+    - 0.4867
+    - 0.4408
+  std:
+    - 0.2675
+    - 0.2565
+    - 0.2761
+  class_names:
+    - apple
+    - aquarium_fish
+    - baby
+    - bear
+    - beaver
+    - bed
+    - bee
+    - beetle
+    - bicycle
+    - bottle
+    - bowl
+    - boy
+    - bridge
+    - bus
+    - butterfly
+    - camel
+    - can
+    - castle
+    - caterpillar
+    - cattle
+    - chair
+    - chimpanzee
+    - clock
+    - cloud
+    - cockroach
+    - couch
+    - crab
+    - crocodile
+    - cup
+    - dinosaur
+    - dolphin
+    - elephant
+    - flatfish
+    - forest
+    - fox
+    - girl
+    - hamster
+    - house
+    - kangaroo
+    - keyboard
+    - lamp
+    - lawn_mower
+    - leopard
+    - lion
+    - lizard
+    - lobster
+    - man
+    - maple_tree
+    - motorcycle
+    - mountain
+    - mouse
+    - mushroom
+    - oak_tree
+    - orange
+    - orchid
+    - otter
+    - palm_tree
+    - pear
+    - pickup_truck
+    - pine_tree
+    - plain
+    - plate
+    - poppy
+    - porcupine
+    - possum
+    - rabbit
+    - raccoon
+    - ray
+    - road
+    - rocket
+    - rose
+    - sea
+    - seal
+    - shark
+    - shrew
+    - skunk
+    - skyscraper
+    - snail
+    - snake
+    - spider
+    - squirrel
+    - streetcar
+    - sunflower
+    - sweet_pepper
+    - table
+    - tank
+    - telephone
+    - television
+    - tiger
+    - tractor
+    - train
+    - trout
+    - tulip
+    - turtle
+    - wardrobe
+    - whale
+    - willow_tree
+    - wolf
+    - woman
+    - worm
+
+mnist:
+  num_classes: 10
+  num_channels: 1
+  height: 28
+  width: 28
+  mean:
+    - 0.1307
+  std:
+    - 0.3081
+  class_names:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+
+fashion_mnist:
+  num_classes: 10
+  num_channels: 1
+  height: 28
+  width: 28
+  mean:
+    - 0.2860
+  std:
+    - 0.3530
+  class_names:
+    - T-shirt/top
+    - Trouser
+    - Pullover
+    - Dress
+    - Coat
+    - Sandal
+    - Shirt
+    - Sneaker
+    - Bag
+    - Ankle boot
