@@ -29,17 +29,17 @@ class BaseDataModule(pl.LightningDataModule, ABC):
         """
         assert self.config["data"]["transforms"]["train"].keys() == self.config["data"]["transforms"]["test"].keys(), "Train and test transforms must have the same keys"
         transforms_names = self.config["data"]["transforms"]["train"].keys()
-        for transform_name in transforms_names:
+        for phase in ["train", "test"]:
             transforms = []
-            for phase in ["train", "test"]:
+            for transform_name in transforms_names:
                 params = self.config["data"]["transforms"][phase][transform_name]
                 if params:
                     transform_class = getattr(tv.transforms, transform_name)
                     transforms.append(transform_class(**params))
             transforms.append(tv.transforms.ToTensor())
-            if self.config["data"]["normalize"]:
+            if self.config["data"]["transforms"]["normalize"]:
                 transforms.append(tv.transforms.Normalize(self.mean, self.std))
-            setattr(self, f"{transform_name}_transform", tv.transforms.Compose(transforms))
+            setattr(self, f"{phase}_transform", tv.transforms.Compose(transforms))
 
     @abstractmethod
     def prepare_data(self):
