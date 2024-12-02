@@ -46,6 +46,33 @@ class BaseDataModule(pl.LightningDataModule, ABC):
         """Download dataset if needed"""
         pass
 
+    @abstractmethod
+    def get_dataset(self, split: str, transform):
+        """Return dataset for a given split"""
+        pass
+
+    def setup(self, stage=None):
+        self.setup_transforms()
+
+        if stage == "fit" or stage is None:
+            full_train_dataset = self.get_dataset("train", self.train_transform)
+            full_train_dataset = self.filter_dataset(
+                full_train_dataset,
+                num_classes=self.config["num_classes"],
+                samples_per_class=self.config["data"]["samples_per_class"],
+            )
+            self.train_dataset, self.val_dataset = self.create_train_val_split(
+                full_train_dataset
+            )
+
+        if stage == "test" or stage is None:
+            self.test_dataset = self.get_dataset("test", self.test_transform)
+            self.test_dataset = self.filter_dataset(
+                self.test_dataset,
+                num_classes=self.config["num_classes"],
+                samples_per_class=self.config["data"]["samples_per_class"],
+            )
+
     def filter_dataset(self, dataset, num_classes, samples_per_class):
         """
         Select at random num_classes classes from the dataset, and for each of them
