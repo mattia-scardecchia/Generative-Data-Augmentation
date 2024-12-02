@@ -4,19 +4,6 @@ from .base import BaseDataModule
 
 class MNISTDataModule(BaseDataModule):
 
-    def setup_transforms(self):
-        self.train_transform = transforms.Compose(
-            [
-                transforms.RandomRotation(10),
-                transforms.ToTensor(),
-                transforms.Normalize(self.mean, self.std),
-            ]
-        )
-
-        self.test_transform = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize(self.mean, self.std)]
-        )
-
     def prepare_data(self):
         datasets.MNIST(self.config["data_dir"], train=True, download=True)
         datasets.MNIST(self.config["data_dir"], train=False, download=True)
@@ -49,20 +36,6 @@ class MNISTDataModule(BaseDataModule):
 
 
 class FashionMNISTDataModule(BaseDataModule):
-
-    def setup_transforms(self):
-        self.train_transform = transforms.Compose(
-            [
-                transforms.RandomHorizontalFlip(),
-                transforms.RandomRotation(10),
-                transforms.ToTensor(),
-                transforms.Normalize(self.mean, self.std),
-            ]
-        )
-
-        self.test_transform = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize(self.mean, self.std)]
-        )
 
     def prepare_data(self):
         datasets.FashionMNIST(self.config["data_dir"], train=True, download=True)

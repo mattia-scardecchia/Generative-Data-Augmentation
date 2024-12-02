@@ -4,22 +4,6 @@ from .base import BaseDataModule
 
 class CIFAR10DataModule(BaseDataModule):
 
-    def setup_transforms(self):
-        self.train_transform = transforms.Compose(
-            [
-                transforms.RandomCrop(32, padding=4),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                transforms.Normalize(self.mean, self.std),
-            ]
-        )
-        self.test_transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize(self.mean, self.std),
-            ]
-        )
-
     def prepare_data(self):
         datasets.CIFAR10(self.config["data_dir"], train=True, download=True)
         datasets.CIFAR10(self.config["data_dir"], train=False, download=True)
@@ -52,22 +36,6 @@ class CIFAR10DataModule(BaseDataModule):
 
 
 class CIFAR100DataModule(BaseDataModule):
-
-    def setup_transforms(self):
-        self.train_transform = transforms.Compose(
-            [
-                transforms.RandomCrop(32, padding=4),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                transforms.Normalize(self.mean, self.std),
-            ]
-        )
-        self.test_transform = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize(self.mean, self.std),
-            ]
-        )
 
     def prepare_data(self):
         datasets.CIFAR100(self.config["data_dir"], train=True, download=True)

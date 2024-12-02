@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader, Subset
+import torchvision as tv
 import torch
 import numpy as np
 
@@ -21,10 +22,24 @@ class BaseDataModule(pl.LightningDataModule, ABC):
             assert key not in self.__dict__, f"Metadata key {key} already exists"
             setattr(self, key, value)
 
-    @abstractmethod
     def setup_transforms(self):
-        """Define dataset-specific transforms"""
-        pass
+        """
+        Read data preprocessing parameters from config and create torchvision transforms
+        for train and test datasets.
+        """
+        assert self.config["data"]["transforms"]["train"].keys() == self.config["data"]["transforms"]["test"].keys(), "Train and test transforms must have the same keys"
+        transforms_names = self.config["data"]["transforms"]["train"].keys()
+        for transform_name in transforms_names:
+            transforms = []
+            for phase in ["train", "test"]:
+                params = self.config["data"]["transforms"][phase][transform_name]
+                if params:
+                    transform_class = getattr(tv.transforms, transform_name)
+                    transforms.append(transform_class(**params))
+            transforms.append(tv.transforms.ToTensor())
+            if self.config["data"]["normalize"]:
+                transforms.append(tv.transforms.Normalize(self.mean, self.std))
+            setattr(self, f"{transform_name}_transform", tv.transforms.Compose(transforms))
 
     @abstractmethod
     def prepare_data(self):
