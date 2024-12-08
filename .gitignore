@@ -1,5 +1,12 @@
+# logs
 wandb
+slurm
+
+# datasets
 data
+
+# python
 __pycache__
 
+# vscode
 launch.json
