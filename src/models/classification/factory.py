@@ -14,7 +14,7 @@ MODEL_REGISTRY = {
 }
 
 
-def create_classifier(architecture, config):
+def create_classifier(architecture, config, dataset_metadata):
     """
     Factory function to create a model based on architecture name and config.
     """
@@ -27,12 +27,12 @@ def create_classifier(architecture, config):
         model = classifier_class(pretrained=True)
 
         if architecture == "resnet18":
-            model.fc = nn.Linear(model.fc.in_features, config["num_classes"])
+            model.fc = nn.Linear(model.fc.in_features, dataset_metadata["num_classes"])
         elif architecture == "vgg11":
             model.classifier[-1] = nn.Linear(
-                model.classifier[-1].in_features, config["num_classes"]
+                model.classifier[-1].in_features, dataset_metadata["num_classes"]
             )
     else:
-        model = classifier_class(config)
+        model = classifier_class(config, dataset_metadata)
 
     return model

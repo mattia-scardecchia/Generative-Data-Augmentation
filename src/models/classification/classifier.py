@@ -23,16 +23,18 @@ class ImageClassifier(pl.LightningModule):
         # units than number of classes; then model needs to learn that some of the
         # classes never come up.
         model_config = config["model"]["config"]
-        model_config["num_classes"] = self.dataset_metadata["num_classes"]
-        model_config["in_channels"] = self.dataset_metadata["num_channels"]
-        model_config["input_size"] = (
+        num_classes = self.dataset_metadata["num_classes"]
+        in_channels = self.dataset_metadata["num_channels"]
+        input_size = (
             self.dataset_metadata["height"]
             * self.dataset_metadata["width"]
             * self.dataset_metadata["num_channels"]
         )
+        self.dataset_metadata["input_size"] = input_size
         self.model = create_classifier(
             config["model"]["architecture"],
             config=model_config,
+            dataset_metadata=self.dataset_metadata,
         )
 
     def forward(self, x):
