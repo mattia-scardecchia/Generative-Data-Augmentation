@@ -13,3 +13,6 @@ launch.json
 
 # pip
 *.egg-info
+
+# hydra
+outputs

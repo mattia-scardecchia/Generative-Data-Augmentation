@@ -1,0 +1,17 @@
+data:
+  samples_per_class: -1
+  batch_size: 64
+  num_workers: 2 # dataloader workers
+  train_val_split: 0.8
+  transforms:
+    normalize: true # has to agree between train and test
+    train:
+      RandomHorizontalFlip:
+        p: 0.5
+      RandomRotation:
+        degrees: 10
+      RandomCrop: null
+    test:
+      RandomHorizontalFlip: null
+      RandomRotation: null
+      RandomCrop: null

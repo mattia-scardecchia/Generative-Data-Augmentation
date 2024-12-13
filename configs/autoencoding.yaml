@@ -1,0 +1,23 @@
+defaults:
+  - data
+  - training
+  - logging
+
+dataset: "fashion_mnist"
+num_classes: 10
+data_dir: "./data/datasets"
+device: "cuda"
+seed: 43
+
+model:
+  architecture: "mlp"
+  config:
+    input_size: 784 # e.g., flattened 28x28 image
+    hidden_dims: [512, 256] # dimensions for residual blocks
+    latent_dim: 128 # bottleneck dimension
+    block_kwargs:
+      dropout: 0.1
+      activation: "ReLU"
+
+training:
+  loss: "mse"

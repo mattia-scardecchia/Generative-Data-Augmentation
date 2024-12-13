@@ -18,9 +18,9 @@ class Autoencoder(pl.LightningModule):
         self.save_hyperparameters()
 
         model_config = config["model"]["config"]
-        model_config["num_classes"] = self.dataset_metadata["num_classes"]  # not strictly necessary
-        model_config["in_channels"] = self.dataset_metadata["num_channels"]
-        model_config["input_size"] = (
+        num_classes = self.dataset_metadata["num_classes"]  # not strictly necessary
+        in_channels = self.dataset_metadata["num_channels"]
+        input_size = (
             self.dataset_metadata["height"]
             * self.dataset_metadata["width"]
             * self.dataset_metadata["num_channels"]
@@ -29,8 +29,10 @@ class Autoencoder(pl.LightningModule):
         self.encoder: nn.Module
         self.decoder: nn.Module
         self.encoder, self.decoder = create_autoencoder(
-            config["model"]["architecture"],
+            architecture=config["model"]["architecture"],
             config=model_config,
+            in_channels=in_channels,
+            input_size=input_size,
         )
 
         match config["training"]["loss"].lower():

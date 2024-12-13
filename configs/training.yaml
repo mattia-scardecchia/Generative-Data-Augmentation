@@ -1,0 +1,6 @@
+training:
+  epochs: 2
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  val_freq: 1.0 # fraction of epoch (float) or steps (int)
+  label_smoothing: 0.05
