@@ -7,8 +7,8 @@ from pytorch_lightning.loggers import WandbLogger
 import torch
 from pathlib import Path
 
-from dataset import get_datamodule
-from models.classifier import ImageClassifier
+from src.dataset import get_datamodule
+from src.models.classification.classifier import ImageClassifier
 from src.utils import set_seed
 
 

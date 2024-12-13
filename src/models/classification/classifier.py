@@ -5,9 +5,9 @@ import torch.nn.functional as F
 import torchvision.models as models
 import wandb
 from yaml import safe_load as yaml_safe_load
-from models import create_model
+from . import create_classifier
 
-dataset_metadata = yaml_safe_load(open("dataset/metadata.yaml", "r"))
+dataset_metadata = yaml_safe_load(open("src/dataset/metadata.yaml", "r"))
 
 
 class ImageClassifier(pl.LightningModule):
@@ -30,7 +30,7 @@ class ImageClassifier(pl.LightningModule):
             * self.dataset_metadata["width"]
             * self.dataset_metadata["num_channels"]
         )
-        self.model = create_model(
+        self.model = create_classifier(
             config["model"]["architecture"],
             config=model_config,
         )
@@ -79,6 +79,9 @@ class ImageClassifier(pl.LightningModule):
         return loss
 
     def _log_images(self, x, y, logits, prefix, num_images=8):
+        """
+        Log images to wandb, with true and predicted labels.
+        """
         if not self.config["logging"]["wandb_logging"]:
             return
         preds = logits.argmax(dim=1)

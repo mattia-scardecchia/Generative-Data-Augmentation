@@ -9,7 +9,7 @@ DATAMODULES = {
     "fashion_mnist": FashionMNISTDataModule,
 }
 
-metadata = yaml_safe_load(open("dataset/metadata.yaml", "r"))
+metadata = yaml_safe_load(open("src/dataset/metadata.yaml", "r"))
 
 
 def get_datamodule(config):
