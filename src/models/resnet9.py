@@ -13,6 +13,10 @@ def conv_block(in_channels, out_channels, pool=False):
 
 
 class ResNet9(nn.Module):
+    """
+    Small ResNet, architecture hyperparams meant for cifar10.
+    From: https://github.com/Moddy2024/ResNet-9/blob/main/resnet-9.ipynb
+    """
     def __init__(self, config):
         super().__init__()
         self.config = config

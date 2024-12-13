@@ -8,8 +8,8 @@ import torch
 from pathlib import Path
 
 from dataset import get_datamodule
-from model.classifier import ImageClassifier
-from utils import set_seed
+from models.classifier import ImageClassifier
+from src.utils import set_seed
 
 
 def load_config(config_path: str) -> dict:
@@ -19,7 +19,7 @@ def load_config(config_path: str) -> dict:
 
 def main():
     # Load configuration
-    config = load_config("config.yaml")
+    config = load_config("configs/classification.yaml")
 
     # Set seed for reproducibility
     set_seed(config["seed"])

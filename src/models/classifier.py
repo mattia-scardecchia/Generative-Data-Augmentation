@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torchvision.models as models
 import wandb
 from yaml import safe_load as yaml_safe_load
-from model import create_model
+from models import create_model
 
 dataset_metadata = yaml_safe_load(open("dataset/metadata.yaml", "r"))
 
