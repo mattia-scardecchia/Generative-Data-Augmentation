@@ -2,6 +2,7 @@ defaults:
   - data
   - training
   - logging
+  - _self_
 
 dataset: "fashion_mnist"
 num_classes: 10

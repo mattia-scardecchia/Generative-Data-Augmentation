@@ -2,10 +2,11 @@ defaults:
   - data
   - training
   - logging
+  - _self_
 
 dataset: "fashion_mnist"
 num_classes: 10
-data_dir: "./data/datasets"
+data_dir: "data/datasets"
 device: "cuda"
 seed: 43
 

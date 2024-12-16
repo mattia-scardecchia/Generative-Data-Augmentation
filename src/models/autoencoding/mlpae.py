@@ -35,6 +35,7 @@ class MLPEncoder(nn.Module):
         self.output_proj = nn.Linear(hidden_dims[-1], out_features)
                 
     def forward(self, x):
+        x = x.flatten(1)
         x = self.input_proj(x)        
         for block in self.blocks:
             x = block(x)
@@ -71,6 +72,7 @@ class MLPDecoder(nn.Module):
         self.output_proj = nn.Linear(hidden_dims[-1], out_features)
             
     def forward(self, x):
+        x = x.flatten(1)
         x = self.input_proj(x)
         for block in self.blocks:
             x = block(x)            

@@ -1,27 +1,24 @@
 import datetime
+import json
 import os
-import yaml
+
+import hydra
 import pytorch_lightning as pl
+from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
-import torch
-from pathlib import Path
-import hydra
-from omegaconf import DictConfig, OmegaConf
 
 from src.dataset import get_datamodule
 from src.models.classification.classifier import ImageClassifier
 from src.utils import set_seed
 
 
-def load_config(config_path: str) -> dict:
-    with open(config_path, "r") as f:
-        return yaml.safe_load(f)
-
 @hydra.main(config_path="../configs", config_name="classification")
 def main(config: DictConfig):
-    for key, value in config.items():
-        print(key, value)
+    print(f"Working directory: {os.getcwd()}")
+    print("Hydra config:")
+    print(json.dumps(OmegaConf.to_container(config, resolve=True), indent=2))
+
     set_seed(config["seed"])
     datamodule = get_datamodule(config)
     model = ImageClassifier(config)

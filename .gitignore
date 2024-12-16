@@ -9,10 +9,13 @@ data
 __pycache__
 
 # vscode
-launch.json
+.vscode
 
 # pip
 *.egg-info
 
 # hydra
 outputs
+
+# tensorboard
+lightning_logs
