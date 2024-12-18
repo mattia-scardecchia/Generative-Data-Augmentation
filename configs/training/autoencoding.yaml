@@ -7,23 +7,23 @@ name: "prova"
 seed: 43
 device: "cuda"
 
-model:
-  architecture: "mlp"
-  config:
-    input_size: 784 # e.g., flattened 28x28 image
-    hidden_dims: [512, 256] # dimensions for residual blocks
-    latent_dim: 128 # bottleneck dimension
-    block_kwargs:
-      dropout: 0.1
-      activation: "ReLU"
-
 # model:
-#   architecture: "conv"
+#   architecture: "mlp"
 #   config:
-#     block_type: "convnext"
-#     hidden_dims: [100, 50]
-#     upsample: [2, 2]
-#     downsample: [2, 2]
+#     hidden_dims: [512, 256] # dimensions for residual blocks
+#     latent_dim: 128 # bottleneck dimension
+#     block_kwargs:
+#       dropout: 0.1
+#       activation: "ReLU"
+
+model:
+  architecture: "conv"
+  config:
+    block_type: "convnext"
+    hidden_dims: [128, 256]
+    latent_dim: 512
+    downsample: [2, 2]
+    # block_kwargs:
 
 training:
   epochs: 1
