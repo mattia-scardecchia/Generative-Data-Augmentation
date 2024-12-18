@@ -13,7 +13,7 @@ from src.models.autoencoding.autoencoder import Autoencoder
 from src.utils import set_seed
 
 
-@hydra.main(config_path="../configs", config_name="autoencoding")
+@hydra.main(config_path="../configs/training", config_name="autoencoding")
 def main(config: DictConfig):
     print(f"Working directory: {os.getcwd()}")
     print("Hydra config:")

@@ -1,14 +1,10 @@
 defaults:
   - data
-  - training
   - logging
   - _self_
 
-dataset: "fashion_mnist"
-num_classes: 10
-data_dir: "data/datasets"
-device: "cuda"
 seed: 43
+device: "cuda"
 
 model:
   architecture: "mlp"
@@ -21,4 +17,8 @@ model:
       activation: "ReLU"
 
 training:
+  epochs: 2
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  val_freq: 1.0 # fraction of epoch (float) or steps (int)
   loss: "mse"

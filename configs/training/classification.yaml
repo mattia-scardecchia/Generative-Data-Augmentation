@@ -1,3 +1,18 @@
+defaults:
+  - data
+  - logging
+  - _self_
+
+seed: 43
+device: "cuda"
+
+model:
+  architecture: "mlp"
+  config:
+    hidden:
+      - 512
+      - 256
+
 training:
   epochs: 2
   learning_rate: 0.001

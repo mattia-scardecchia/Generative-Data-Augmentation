@@ -1,3 +1,7 @@
+dataset: "fashion_mnist"
+num_classes: 10
+data_dir: "./data/datasets"
+
 data:
   samples_per_class: -1
   batch_size: 64

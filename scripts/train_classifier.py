@@ -13,7 +13,7 @@ from src.models.classification.classifier import ImageClassifier
 from src.utils import set_seed
 
 
-@hydra.main(config_path="../configs", config_name="classification")
+@hydra.main(config_path="../configs/training", config_name="classification")
 def main(config: DictConfig):
     print(f"Working directory: {os.getcwd()}")
     print("Hydra config:")
