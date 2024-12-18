@@ -7,6 +7,7 @@ from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
+import wandb
 from src.dataset import get_datamodule
 from src.utils import set_seed
 
@@ -58,3 +59,6 @@ def train(config: DictConfig, model_class):
     )
     trainer.fit(model, datamodule=datamodule)
     trainer.test(model, datamodule=datamodule)
+
+    if config["logging"]["wandb_logging"]:
+        wandb.finish()
