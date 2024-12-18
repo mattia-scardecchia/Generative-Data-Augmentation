@@ -56,6 +56,7 @@ def train(config: DictConfig, model_class):
         logger=logger,
         val_check_interval=config["training"]["val_freq"],
         log_every_n_steps=config["logging"]["log_freq"],
+        gradient_clip_val=config["training"]["gradient_clip_val"],
     )
     trainer.fit(model, datamodule=datamodule)
     trainer.test(model, datamodule=datamodule)

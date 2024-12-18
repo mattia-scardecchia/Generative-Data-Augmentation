@@ -20,14 +20,15 @@ model:
   architecture: "conv"
   config:
     block_type: "convnext"
-    hidden_dims: [128, 256]
-    latent_dim: 512
+    hidden_dims: [128, 128]
+    latent_dim: 32
     downsample: [2, 2]
     # block_kwargs:
 
 training:
-  epochs: 1
+  epochs: 10
   learning_rate: 0.001
+  gradient_clip_val: 1.0
   weight_decay: 0.0001
   val_freq: 1.0 # fraction of epoch (float) or steps (int)
   loss: "mse"
