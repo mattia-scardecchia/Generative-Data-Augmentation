@@ -17,6 +17,14 @@ model:
       dropout: 0.1
       activation: "ReLU"
 
+# model:
+#   architecture: "conv"
+#   config:
+#     block_type: "convnext"
+#     hidden_dims: [100, 50]
+#     upsample: [2, 2]
+#     downsample: [2, 2]
+
 training:
   epochs: 1
   learning_rate: 0.001

@@ -13,11 +13,13 @@ from src.utils import set_seed
 
 def train(config: DictConfig, model_class):
     print(f"Working directory: {os.getcwd()}")
-    print("Hydra config:")
+    print("========== Hydra config ==========")
     print(json.dumps(OmegaConf.to_container(config, resolve=True), indent=2))
     set_seed(config["seed"])
     datamodule = get_datamodule(config)
     model = model_class(config)
+    print("========== Model summary ==========")
+    print(model)
 
     callbacks = []
     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
