@@ -7,3 +7,16 @@ logging:
   watch_freq: 100 # steps
   checkpoint_freq: 100 # epochs
   checkpoint_root: "./data/checkpoints"
+
+hydra:
+  job:
+    chdir: False
+    config:
+      override_dirname:
+        exclude_keys:
+          - seed
+  run:
+    dir: outputs/${name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: outputs/${name}/sweeps/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.override_dirname}/seed=${seed}
