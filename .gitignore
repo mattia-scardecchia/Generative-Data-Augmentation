@@ -1,6 +1,6 @@
 # logs
 wandb
-slurm
+slurm_logs
 
 # datasets
 data
@@ -16,6 +16,7 @@ __pycache__
 
 # hydra
 outputs
+multirun
 
 # tensorboard
 lightning_logs
