@@ -1,10 +1,10 @@
 import pytorch_lightning as pl
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torchvision.models as models
-import wandb
 from yaml import safe_load as yaml_safe_load
+
+import wandb
+
 from . import create_classifier
 
 dataset_metadata = yaml_safe_load(open("src/dataset/metadata.yaml", "r"))
@@ -43,13 +43,14 @@ class ImageClassifier(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = F.cross_entropy(logits, y, label_smoothing=self.config["training"]["label_smoothing"])
+        loss = F.cross_entropy(
+            logits, y, label_smoothing=self.config["training"]["label_smoothing"]
+        )
 
         acc = (logits.argmax(dim=1) == y).float().mean()
         self.log("train/loss", loss, on_step=True, on_epoch=True)
         self.log("train/acc", acc, on_step=True, on_epoch=True)
-
-        if (batch_idx + 1) % self.config["logging"]["image_log_freq"] == 0:
+        if batch_idx % self.config["logging"]["image_log_freq"] == 0:
             self._log_images(x, y, logits, "train")
 
         return loss
@@ -57,13 +58,14 @@ class ImageClassifier(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = F.cross_entropy(logits, y, label_smoothing=self.config["training"]["label_smoothing"])
+        loss = F.cross_entropy(
+            logits, y, label_smoothing=self.config["training"]["label_smoothing"]
+        )
 
         acc = (logits.argmax(dim=1) == y).float().mean()
         self.log("val/loss", loss, on_epoch=True)
         self.log("val/acc", acc, on_epoch=True)
-
-        if batch_idx == 0:  # Log images from first validation batch
+        if batch_idx == 0:
             self._log_images(x, y, logits, "val")
 
         return loss
@@ -73,10 +75,11 @@ class ImageClassifier(pl.LightningModule):
         logits = self(x)
         loss = F.cross_entropy(logits, y)
 
-        # Log metrics
         acc = (logits.argmax(dim=1) == y).float().mean()
         self.log("test/loss", loss, on_epoch=True)
         self.log("test/acc", acc, on_epoch=True)
+        if batch_idx == 0:
+            self._log_images(x, y, logits, "test")
 
         return loss
 

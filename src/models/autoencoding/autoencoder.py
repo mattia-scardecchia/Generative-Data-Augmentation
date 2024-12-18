@@ -63,7 +63,7 @@ class Autoencoder(pl.LightningModule):
         loss = self.loss_fn(x_hat, x)
 
         self.log("train/loss", loss, on_step=True, on_epoch=True)
-        if (batch_idx + 1) % self.config["logging"]["image_log_freq"] == 0:
+        if batch_idx % self.config["logging"]["image_log_freq"] == 0:
             self._log_images(x, y, x_hat, "train")
 
         return loss
@@ -74,7 +74,7 @@ class Autoencoder(pl.LightningModule):
         loss = self.loss_fn(x_hat, x)
 
         self.log("val/loss", loss, on_epoch=True)
-        if (batch_idx + 1) % self.config["logging"]["image_log_freq"] == 0:
+        if batch_idx == 0:
             self._log_images(x, y, x_hat, "val")
 
         return loss
@@ -85,7 +85,7 @@ class Autoencoder(pl.LightningModule):
         loss = self.loss_fn(x_hat, x)
 
         self.log("test/loss", loss, on_epoch=True)
-        if (batch_idx + 1) % self.config["logging"]["image_log_freq"] == 0:
+        if batch_idx == 0:
             self._log_images(x, y, x_hat, "test")
 
         return loss
@@ -107,7 +107,7 @@ class Autoencoder(pl.LightningModule):
         for i in range(num_images):
             concatenated_image = torch.cat([x[i], x_hat[i]], dim=2)
             caption = (
-                f"Original vs. Reconstructed, {y[i]}"
+                f"Original vs. Reconstructed, {true_labels[i]}"
                 if true_labels
                 else "Original vs. Reconstructed"
             )
