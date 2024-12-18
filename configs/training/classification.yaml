@@ -3,6 +3,7 @@ defaults:
   - logging
   - _self_
 
+name: ""
 seed: 43
 device: "cuda"
 
