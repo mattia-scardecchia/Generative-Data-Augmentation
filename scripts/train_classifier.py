@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+import sys
 
 import hydra
 import pytorch_lightning as pl
@@ -60,4 +61,5 @@ def main(config: DictConfig):
 
 
 if __name__ == "__main__":
+    sys.argv.append("hydra.job.chdir=False")
     main()
