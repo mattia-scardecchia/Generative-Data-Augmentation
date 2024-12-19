@@ -38,3 +38,7 @@ path = "data/figures/linear_interpolation.png"
 os.makedirs(os.path.dirname(path), exist_ok=True)
 plt.savefig(path)
 plt.close()
+
+
+statistics = explorer.get_latent_space_statistics(num_samples=300)
+explorer.plot_latent_space_statistics(statistics, save_dir="data/figures/")

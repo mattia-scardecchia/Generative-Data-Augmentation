@@ -5,3 +5,6 @@ pytorch-lightning
 wandb
 hydra-core
 timm  # only for ConvNeXtBlock...
+matplotlib
+seaborn
+scikit-learn
