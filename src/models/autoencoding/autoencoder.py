@@ -122,3 +122,15 @@ class Autoencoder(pl.LightningModule):
             weight_decay=self.config["training"]["weight_decay"],
         )
         return optimizer
+
+    def encode(self, x):
+        """
+        Encode input images into latent space.
+        """
+        return self.encoder(x)
+
+    def decode(self, z):
+        """
+        Decode latent vectors into images.
+        """
+        return self.decoder(z)
