@@ -31,11 +31,12 @@ def train(config: DictConfig, model_class):
     checkpoint_callback = ModelCheckpoint(
         dirpath=checkpoint_dir,
         filename="{epoch}-{val_loss:.2f}",
-        save_last=True,
         verbose=True,
         monitor="val_loss",
         mode="min",
         every_n_epochs=config["logging"]["checkpoint_freq"],
+        save_top_k=config["logging"]["save_top_k"],
+        save_last=config["logging"]["save_last"],
     )
     callbacks.append(checkpoint_callback)
 

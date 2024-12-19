@@ -1,11 +1,13 @@
 logging:
   wandb_logging: true
-  wandb_project: "image-classification"
+  wandb_project: "autoencoders"
   wandb_entity: null
   log_freq: 10 # steps
   image_log_freq: 500 # steps
   watch_freq: 500 # steps
   checkpoint_freq: 100 # epochs
+  save_last: False
+  save_top_k: 1
   checkpoint_root: "./data/checkpoints"
 
 hydra:
