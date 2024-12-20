@@ -18,3 +18,4 @@ In no particular order:
 - try exploring gradient steps with a stronger classifier (especially, conv)
 - explore gradient steps in AE latent space
 - make it nicer/more comprehensive (e.g. do a wandb run, and log gradient and state of input regularly. or, build a video from consecutive states)
+- maybe should renormalize at every step using the same statistics on which classifier was trained (to avoid going out of distr - though with decent classifiers with batchnorm it shouldnt matter too much)
