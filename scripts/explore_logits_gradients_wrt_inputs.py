@@ -33,11 +33,11 @@ batch_size = x.size(0)
 num_classes = len(class_names)
 
 
-# logit_transform = lambda x: x
+logit_transform = lambda x: x
 # logit_transform = lambda x: torch.nn.functional.softmax(x, dim=1)
-def logit_transform(logits):
-    total = logits.sum(dim=-1, keepdim=True)
-    return logits - (total - logits)
+# def logit_transform(logits):
+#     total = logits.sum(dim=-1, keepdim=True)
+#     return logits - (total - logits)
 
 
 # Gradients of logits wrt data
@@ -82,4 +82,33 @@ for num_steps in [1, 3, 5, 10, 50, 100, 1000]:
             axes[i, j + 1].set_title(f"{class_names[j]}")
     plt.tight_layout()
     plt.savefig(f"data/figures/optimal_inputs_for_logits-steps={num_steps}.png")
+    plt.close()
+
+
+# Same but starting from random noise
+x = torch.randn_like(x)
+for num_steps in [1, 3, 5, 10, 50, 100, 1000]:
+    optimal_images = []
+    for idx in range(num_classes):
+        img = optimize_data_wrt_logit(
+            classifier,
+            x.clone(),
+            idx,
+            num_steps=num_steps,
+            optimizer_cls=torch.optim.SGD,
+            logit_transform=logit_transform,
+            lr=(0.05 / avg_grad_magnitude),
+            momentum=0.9,
+        )
+        optimal_images.append(img)
+    fig, axes = plt.subplots(batch_size, num_classes + 1, figsize=(15, 8))
+    for i in range(batch_size):
+        axes[i, 0].imshow(np.transpose(x[i].numpy(), (1, 2, 0)))
+        for j in range(num_classes):
+            axes[i, j + 1].imshow(np.transpose(optimal_images[j][i].numpy(), (1, 2, 0)))
+            axes[i, j + 1].set_title(f"{class_names[j]}")
+    plt.tight_layout()
+    plt.savefig(
+        f"data/figures/optimal_inputs_for_logits_from_noise-steps={num_steps}.png"
+    )
     plt.close()
