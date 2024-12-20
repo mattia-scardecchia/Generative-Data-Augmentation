@@ -1,8 +1,8 @@
 import hydra
 from omegaconf import DictConfig
-from train import train
 
 from src.models.autoencoding.autoencoder import Autoencoder
+from src.train.train import train
 
 
 @hydra.main(
