@@ -6,14 +6,12 @@ import seaborn as sns
 import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
-from omegaconf import OmegaConf
 from sklearn.decomposition import PCA
 from torch.utils.data import DataLoader
 
-from src.dataset import get_datamodule
 from src.eval.interpolation_strategy import InterpolationStrategy
 from src.eval.sampling_strategy import SamplingStrategy
-from src.utils import set_seed
+from src.utils import load_from_hydra_logs, set_seed
 
 
 class LatentExplorer:
@@ -43,26 +41,14 @@ class LatentExplorer:
     def from_hydra_directory(cls, dir_path: str, model_class, device: str = "cuda"):
         """
         Load LatentExplorer from a Hydra output directory.
-        Assumes the following directory structure:
-        .
-        ├── .hydra
-        │   ├── config.yaml
-        │   ├── hydra.yaml
-        │   └── overrides.yaml
-        ├── checkpoints
-        │   └── last.ckpt
-        └── train_ae.log
 
         :param dir_path: Path to the Hydra directory
         :param model_class: Class of the model to load
         :return: LatentExplorer instance
         """
-        config = OmegaConf.load(f"{dir_path}/.hydra/config.yaml")
-        autoencoder = model_class.load_from_checkpoint(
-            f"{dir_path}/checkpoints/last.ckpt"
+        autoencoder, datamodule = load_from_hydra_logs(
+            dir_path=dir_path, model_class=model_class
         )
-        datamodule = get_datamodule(config)
-        datamodule.setup()
         dataloader = DataLoader(
             datamodule.test_dataset,  # inherits transforms from config
             batch_size=config["data"]["batch_size"],

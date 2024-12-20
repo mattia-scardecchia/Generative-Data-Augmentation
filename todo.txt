@@ -10,3 +10,7 @@ In no particular order:
 - implement other autoencoder variants (e.g. VAE, VQVAE)
 - setup 'generative data augmentation' at the input layer
 - generalize to any hidden layer
+
+- to understand hidden layer perturbations (of any kind, including through a perturbation in the latent space on an AE),
+  setup the following: given a dataset and a classifier, collect all hidden representations at that level of the datapoints.
+  then, do nearest neighbor queries to interpret the 'moves' in hidden representation space.
