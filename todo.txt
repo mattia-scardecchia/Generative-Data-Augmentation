@@ -14,3 +14,6 @@ In no particular order:
 - to understand hidden layer perturbations (of any kind, including through a perturbation in the latent space on an AE),
   setup the following: given a dataset and a classifier, collect all hidden representations at that level of the datapoints.
   then, do nearest neighbor queries to interpret the 'moves' in hidden representation space.
+
+- try exploring gradient steps with a stronger classifier (especially, conv)
+- explore gradient steps in AE latent space

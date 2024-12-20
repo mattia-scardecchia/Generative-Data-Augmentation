@@ -31,8 +31,14 @@ class_names = get_class_names("fashion_mnist")
 print(f"class names: {class_names}")
 batch_size = x.size(0)
 num_classes = len(class_names)
-logit_transform = lambda x: x
+
+
+# logit_transform = lambda x: x
 # logit_transform = lambda x: torch.nn.functional.softmax(x, dim=1)
+def logit_transform(logits):
+    total = logits.sum(dim=-1, keepdim=True)
+    return logits - (total - logits)
+
 
 # Gradients of logits wrt data
 grads = compute_all_logits_grad_wrt_data(classifier, x, logit_transform)
@@ -54,7 +60,7 @@ plt.savefig("data/figures/gradients_wrt_inputs.png")
 plt.close()
 
 # Compute images that maximize logits starting from various samples
-for num_steps in [1, 3, 5, 10, 50, 100]:
+for num_steps in [1, 3, 5, 10, 50, 100, 1000]:
     optimal_images = []
     for idx in range(num_classes):
         img = optimize_data_wrt_logit(
@@ -64,7 +70,7 @@ for num_steps in [1, 3, 5, 10, 50, 100]:
             num_steps=num_steps,
             optimizer_cls=torch.optim.SGD,
             logit_transform=logit_transform,
-            lr=(0.1 / avg_grad_magnitude),
+            lr=(0.05 / avg_grad_magnitude),
             momentum=0.9,
         )
         optimal_images.append(img)

@@ -67,6 +67,10 @@ def optimize_data_wrt_logit(
         objective = -obj[:, target].sum()
         objective.backward()
         optimizer.step()
+        # with torch.no_grad():
+        #     M = torch.amax(data, dim=(2, 3))
+        #     m = torch.amin(data, dim=(2, 3))
+        #     data = (data - m[:, None, None]) / (M - m)[:, None, None]
     return data.cpu().detach()  # type: ignore
 
 
