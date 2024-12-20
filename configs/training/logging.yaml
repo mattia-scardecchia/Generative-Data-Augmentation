@@ -5,10 +5,12 @@ logging:
   log_freq: 10 # steps
   image_log_freq: 500 # steps
   watch_freq: 500 # steps
-  checkpoint_freq: 100 # epochs
-  save_last: False
-  save_top_k: 1
-  checkpoint_root: "./data/checkpoints"
+  checkpoints:
+    checkpoint_freq: 5 # epochs
+    save_last: True
+    save_top_k: 2
+    monitor: "val/loss"
+    mode: "min"
 
 hydra:
   job:

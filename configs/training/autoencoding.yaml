@@ -4,8 +4,8 @@ defaults:
   - _self_
 
 name: "prova"
-seed: 43
 device: "cuda"
+seed: 43
 
 # model:
 #   architecture: "mlp"
@@ -26,7 +26,7 @@ model:
     # block_kwargs:
 
 training:
-  epochs: 10
+  epochs: 50
   learning_rate: 0.001
   gradient_clip_val: 1.0
   weight_decay: 0.0001

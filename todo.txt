@@ -1,0 +1,12 @@
+In no particular order:
+
+- debug why no checkpoint is saved apart from last.ckpt even when save_top_k > 1
+- create a method to obtain statistics about the latent space of an autoencoder
+    - encode a few batched and cache them (maybe in a independent method)
+    - use them to compute things like medians, means, quantiles, stddevs, etc. Generate histograms, plots, etc.
+- implement more sophisticated embedding perturbations
+    - use classifier to guide exploration. e.g. use gradients of logits and do GD in input space, or 
+      define an energy and do MCMC
+- implement other autoencoder variants (e.g. VAE, VQVAE)
+- setup 'generative data augmentation' at the input layer
+- generalize to any hidden layer

@@ -11,9 +11,9 @@ data:
     normalize: true # has to agree between train and test
     train:
       RandomHorizontalFlip:
-        p: 0.5
+        p: 0.0
       RandomRotation:
-        degrees: 10
+        degrees: 0
       RandomCrop: null
     test:
       RandomHorizontalFlip: null
