@@ -3,75 +3,8 @@ import random
 import numpy as np
 import torch
 from omegaconf import OmegaConf
-from torch import nn
 
 from src.dataset import get_datamodule
-
-
-def compute_logit_grad_wrt_data(
-    classifier: nn.Module,
-    data: torch.Tensor,
-    target: int,
-    logit_transform=lambda x: x,
-) -> torch.Tensor:
-    """
-    Compute the gradient of the classifier probability/logit for the target class with respect to the input data.
-    """
-    data = data.to(classifier.device)
-    data.requires_grad = True
-    logits = classifier(data)
-    obj = logit_transform(logits)
-    objective = obj[:, target].sum()
-    objective.backward()
-    return data.grad.cpu().detach()  # type: ignore
-
-
-def compute_all_logits_grad_wrt_data(
-    classifier: nn.Module, data: torch.Tensor, logit_transform=lambda x: x
-) -> list[torch.Tensor]:
-    """
-    Compute the gradient of all classifier probabilities/logits with respect to the input data.
-    """
-    data = data.to(classifier.device)
-    data.requires_grad = True
-    logits = classifier(data)
-    obj = logit_transform(logits)
-    grads = []
-    for idx in range(logits.shape[1]):
-        objective = obj[:, idx].sum()
-        objective.backward(retain_graph=True)
-        grads.append(data.grad.cpu().detach())  # type: ignore
-        data.grad = None
-    return grads
-
-
-def optimize_data_wrt_logit(
-    classifier: nn.Module,
-    data: torch.Tensor,
-    target: int,
-    num_steps: int = 100,
-    optimizer_cls: type[torch.optim.Optimizer] = torch.optim.SGD,
-    logit_transform=lambda x: x,
-    **optimizer_kwargs,
-) -> torch.Tensor:
-    """
-    Optimize the input data to maximize the probability/logit of the target class.
-    """
-    data = data.to(classifier.device)
-    data.requires_grad = True
-    optimizer = optimizer_cls([data], maximize=True, **optimizer_kwargs)  # type: ignore
-    for _ in range(num_steps):
-        optimizer.zero_grad()
-        logits = classifier(data)
-        obj = logit_transform(logits)
-        objective = -obj[:, target].sum()
-        objective.backward()
-        optimizer.step()
-        # with torch.no_grad():
-        #     M = torch.amax(data, dim=(2, 3))
-        #     m = torch.amin(data, dim=(2, 3))
-        #     data = (data - m[:, None, None]) / (M - m)[:, None, None]
-    return data.cpu().detach()  # type: ignore
 
 
 def set_seed(seed: int):
@@ -138,3 +71,13 @@ def get_class_names(dataset: str, metadata_path: str = "src/dataset/metadata.yam
     if dataset not in metadata:
         raise ValueError(f"Dataset {dataset} not found in metadata.")
     return metadata[dataset].class_names
+
+
+def get_mean_and_std(dataset: str, metadata_path: str = "src/dataset/metadata.yaml"):
+    """
+    Retrieve mean and standard deviation from src/dataset/metadata.yaml and return them.
+    """
+    metadata = OmegaConf.load(metadata_path)
+    if dataset not in metadata:
+        raise ValueError(f"Dataset {dataset} not found in metadata.")
+    return metadata[dataset].mean, metadata[dataset].std
