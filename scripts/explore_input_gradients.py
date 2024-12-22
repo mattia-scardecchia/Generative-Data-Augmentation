@@ -48,7 +48,7 @@ def main(cfg):
     set_seed(seed)
     dataloader = DataLoader(
         datamodule.test_dataset,  # inherits transforms from config
-        batch_size=2,
+        batch_size=cfg["batch_size"],
         shuffle=True,
         num_workers=0,  # avoid issues with multiprocessing
     )
@@ -96,7 +96,7 @@ def main(cfg):
     plt.close()
 
     # Explore the optimization trajectory for a specific target class
-    target_idx = 7
+    target_idx = cfg["target_class"]
     traj, probas, grads = optimize_proba_wrt_data(
         classifier,
         x.clone(),
