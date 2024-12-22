@@ -53,9 +53,11 @@ def compute_all_probas_grads_wrt_data_and_plot(
         for j in range(num_classes):
             axes[i, j + 1].imshow(grads[j][i].numpy().transpose(1, 2, 0))
             axes[i, j + 1].axis("off")
-            if class_names:
-                axes[i, j + 1].set_title(class_names[j])
-    fig.suptitle("Gradients of probabilities wrt input data")
+            title = f"M={grads[j][i].abs().max().item():.1f}"
+            # if class_names:
+            #     title = f"{class_names[j]}. " + title
+            axes[i, j + 1].set_title(title)
+
     plt.tight_layout()
     return grads
 
@@ -135,7 +137,10 @@ def visualize_optimization_trajectory(objectives, trajectory, target=None):
         for i in range(num_images):
             axes[i, j].imshow(img[i].numpy().transpose(1, 2, 0))
             # axes[i, j].set_title(f"step {step}: prob={-objectives[step, i].item():.2f}")
-            axes[i, j].set_title(f"{-objectives[step, i].item():.2f}")
+            title = (
+                f"M={img[i].abs().max().item():.1f}p={-objectives[step, i].item():.1f}"
+            )
+            axes[i, j].set_title(title)
             axes[i, j].axis("off")
     if target:
         fig.suptitle(f"Optimization trajectory for target class {target}")
@@ -178,6 +183,7 @@ def optimize_all_probas_wrt_data_and_plot(
         axes[i, 0].imshow(data[i].numpy().transpose(1, 2, 0))
         for j in range(num_classes):
             axes[i, j + 1].imshow(optimized_images[j][i].numpy().transpose(1, 2, 0))
-            axes[i, j + 1].set_title(f"{class_names[j]} ({-probas[j][i].item():.2f})")
             axes[i, j + 1].axis("off")
+            title = f"M={optimized_images[j][i].abs().max().item():.1f}p={-probas[j][i].item():.1f}"
+            axes[i, j + 1].set_title(title)
     plt.tight_layout()

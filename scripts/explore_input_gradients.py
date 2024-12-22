@@ -1,5 +1,4 @@
 import os
-from random import seed
 
 import hydra
 import torch
@@ -63,7 +62,7 @@ def main(cfg):
     grads = compute_all_probas_grads_wrt_data_and_plot(
         classifier, x.clone(), class_names=class_names
     )
-    plt.savefig(os.path.join(save_dir, "gradients_wrt_inputs.png"))
+    plt.savefig(os.path.join(save_dir, "gradients_wrt_inputs.png"), dpi=500)
     plt.close()
 
     # Optimize input data to maximize probabilities
@@ -76,7 +75,7 @@ def main(cfg):
         lr=lr,
         weight_decay=weight_decay,
     )
-    plt.savefig(os.path.join(save_dir, "optimized_inputs_for_probas.png"))
+    plt.savefig(os.path.join(save_dir, "optimized_inputs_for_probas.png"), dpi=500)
     plt.close()
 
     # Optimize random noise and zeros to maximize probabilities
@@ -92,7 +91,7 @@ def main(cfg):
         lr=lr,
         weight_decay=weight_decay,
     )
-    plt.savefig(os.path.join(save_dir, "optimal_inputs_for_probas.png"))
+    plt.savefig(os.path.join(save_dir, "optimal_inputs_for_probas.png"), dpi=500)
     plt.close()
 
     # Explore the optimization trajectory for a specific target class
@@ -108,10 +107,10 @@ def main(cfg):
         weight_decay=weight_decay,
     )
     plot_optimization_metrics(probas, grads, target=class_names[target_idx])
-    plt.savefig(os.path.join(save_dir, "proba_optimization_metrics.png"))
+    plt.savefig(os.path.join(save_dir, "proba_optimization_metrics.png"), dpi=500)
     plt.close()
     visualize_optimization_trajectory(probas, traj, target=class_names[target_idx])
-    plt.savefig(os.path.join(save_dir, "proba_optimization_trajectory.png"))
+    plt.savefig(os.path.join(save_dir, "proba_optimization_trajectory.png"), dpi=500)
     plt.close()
 
 
