@@ -30,9 +30,10 @@ def main(cfg):
     save_every_k = cfg["save_every_k"]
     hydra_path = cfg["hydra_path"]
 
-    name = hydra_path.split("/")[-1]
-    save_dir = os.path.join("data/figures", name)
+    hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
+    save_dir = os.path.join(hydra_cfg["runtime"]["output_dir"], "input_grads")
     os.makedirs(save_dir, exist_ok=True)
+
     classifier, datamodule = load_from_hydra_logs(hydra_path, ImageClassifier)
     for param in classifier.parameters():
         param.requires_grad = False
