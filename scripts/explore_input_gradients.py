@@ -1,4 +1,5 @@
 import os
+from random import seed
 
 import hydra
 import torch
@@ -16,6 +17,7 @@ from src.models.classification.classifier import ImageClassifier
 from src.utils import (
     get_class_names,
     load_from_hydra_logs,
+    set_seed,
 )
 
 
@@ -26,17 +28,24 @@ def main(cfg):
     lr = cfg["lr"]
     weight_decay = cfg["weight_decay"]
     num_steps = cfg["num_steps"]
-    optimizer_cls = getattr(torch.optim, cfg["optimizer_cls"])
+    optimizer_cls = getattr(torch.optim, cfg["optimizer"])
     save_every_k = cfg["save_every_k"]
     hydra_path = cfg["hydra_path"]
+    seed = cfg["seed"]
+    device = cfg["device"]
+    if save_every_k == "auto":
+        save_every_k = num_steps // 10
 
     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
     save_dir = os.path.join(hydra_cfg["runtime"]["output_dir"], "input_grads")
     os.makedirs(save_dir, exist_ok=True)
 
     classifier, datamodule = load_from_hydra_logs(hydra_path, ImageClassifier)
+    classifier = classifier.to(device)
+    classifier.eval()
     for param in classifier.parameters():
         param.requires_grad = False
+    set_seed(seed)
     dataloader = DataLoader(
         datamodule.test_dataset,  # inherits transforms from config
         batch_size=2,
