@@ -1,0 +1,7 @@
+hydra_path: "classifiers/linear-fashion_mnist"
+
+lr: 0.001
+weight_decay: 0.0001
+num_steps: 500
+optimizer_cls: AdamW
+save_every_k: 50

@@ -20,3 +20,7 @@ multirun
 
 # tensorboard
 lightning_logs
+
+# checkpoints
+autoencoders
+classifiers

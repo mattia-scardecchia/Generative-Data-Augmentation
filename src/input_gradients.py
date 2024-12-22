@@ -95,14 +95,14 @@ def optimize_proba_wrt_data(
         grad_norms.append(
             (data.grad**2).mean(dim=(1, 2, 3)).sqrt().cpu().detach().clone()
         )
-        if (step + 1) % save_every_k == 0:
+        if step == 0 or (step + 1) % save_every_k == 0:
             trajectory[step] = data.cpu().detach().clone()
     objectives = torch.stack(objectives, dim=0)
     grad_norms = torch.stack(grad_norms, dim=0)
     return trajectory, objectives, grad_norms
 
 
-def plot_optimization_metrics(objectives, grad_norms):
+def plot_optimization_metrics(objectives, grad_norms, target=None):
     """
     Plot the metrics during optimization.
     """
@@ -119,6 +119,8 @@ def plot_optimization_metrics(objectives, grad_norms):
     axes[0].set_ylabel("Target Probability")
     axes[1].set_title("Avg gradient norm during optimization")
     axes[1].set_ylabel("Gradient Norm")
+    if target:
+        fig.suptitle(f"Optimization for target class {target}")
     plt.tight_layout()
 
 
@@ -132,7 +134,9 @@ def visualize_optimization_trajectory(objectives, trajectory, target=None):
     for j, (step, img) in enumerate(trajectory.items()):
         for i in range(num_images):
             axes[i, j].imshow(img[i].numpy().transpose(1, 2, 0))
-            axes[i, j].set_title(f"step {step}: prob={-objectives[step, i].item():.2f}")
+            # axes[i, j].set_title(f"step {step}: prob={-objectives[step, i].item():.2f}")
+            axes[i, j].set_title(f"{-objectives[step, i].item():.2f}")
+            axes[i, j].axis("off")
     if target:
         fig.suptitle(f"Optimization trajectory for target class {target}")
     plt.tight_layout()
