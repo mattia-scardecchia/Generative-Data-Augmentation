@@ -22,7 +22,7 @@ class ResNet9(nn.Module):
         self.config = config
         self.dataset_metadata = dataset_metadata
 
-        self.conv1 = conv_block(dataset_metadata["in_channels"], 64)
+        self.conv1 = conv_block(dataset_metadata["num_channels"], 64)
         self.conv2 = conv_block(64, 128, pool=True)
         self.res1 = nn.Sequential(conv_block(128, 128), conv_block(128, 128))
 
