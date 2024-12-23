@@ -1,1 +1,1 @@
-A playground to quickly test ideas and check assumptions with deep learning models cheaply and in a familiar, reproducible environment. WIP.
+Using torch and lightning for training, wandb for logging, hydra for configs. WIP.
