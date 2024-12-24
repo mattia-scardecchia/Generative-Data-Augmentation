@@ -1,21 +1,23 @@
-In no particular order:
+Next Steps:
+
+- try to optimize a class probability in the latent space of a trained AE.
+- write a single script that achieves the following:
+    - train a classifier
+    - for some depths, train an autoencoder
+    - save everything to disk --> probably no structure beyond checkpoint filenames?
+- write code to perform label-informed data augmentation through autoencoders (and not) 
+  during classifier training --> think how to design this; should be modular and reusable
+
+
+
+More:
 
 - debug why no checkpoint is saved apart from last.ckpt even when save_top_k > 1
-- create a method to obtain statistics about the latent space of an autoencoder
-    - encode a few batched and cache them (maybe in a independent method)
-    - use them to compute things like medians, means, quantiles, stddevs, etc. Generate histograms, plots, etc.
-- implement more sophisticated embedding perturbations
-    - use classifier to guide exploration. e.g. use gradients of logits and do GD in input space, or 
-      define an energy and do MCMC
+- can improve:
+    - statistics about latent space
+    - sampling around an embedding in latent space exploration (more options, e.g. sample at multiple
+      gaussian noise levels or do a MCMC guided by probas)
 - implement other autoencoder variants (e.g. VAE, VQVAE)
-- setup 'generative data augmentation' at the input layer
-- generalize to any hidden layer
-
 - to understand hidden layer perturbations (of any kind, including through a perturbation in the latent space on an AE),
   setup the following: given a dataset and a classifier, collect all hidden representations at that level of the datapoints.
   then, do nearest neighbor queries to interpret the 'moves' in hidden representation space.
-
-- try exploring gradient steps with a stronger classifier (especially, conv)
-- explore gradient steps in AE latent space
-- make it nicer/more comprehensive (e.g. do a wandb run, and log gradient and state of input regularly. or, build a video from consecutive states)
-- maybe should renormalize at every step using the same statistics on which classifier was trained (to avoid going out of distr - though with decent classifiers with batchnorm it shouldnt matter too much)
