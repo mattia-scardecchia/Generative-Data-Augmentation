@@ -60,7 +60,7 @@ def load_from_hydra_logs(dir_path: str, model_class):
     model = model_class.load_from_checkpoint(f"{dir_path}/checkpoints/last.ckpt")
     datamodule = get_datamodule(config)
     datamodule.setup()
-    return model, datamodule
+    return model, datamodule, config
 
 
 def get_class_names(dataset: str, metadata_path: str = "src/dataset/metadata.yaml"):

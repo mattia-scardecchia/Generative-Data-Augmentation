@@ -46,12 +46,12 @@ class LatentExplorer:
         :param model_class: Class of the model to load
         :return: LatentExplorer instance
         """
-        autoencoder, datamodule = load_from_hydra_logs(
+        autoencoder, datamodule, config = load_from_hydra_logs(
             dir_path=dir_path, model_class=model_class
         )
         dataloader = DataLoader(
             datamodule.test_dataset,  # inherits transforms from config
-            batch_size=config["data"]["batch_size"],
+            batch_size=config["data"]["batch_size"],  # type: ignore
             shuffle=True,
             num_workers=0,  # avoid issues with multiprocessing
         )

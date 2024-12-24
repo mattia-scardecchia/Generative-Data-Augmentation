@@ -39,7 +39,7 @@ def main(cfg):
     save_dir = os.path.join(hydra_cfg["runtime"]["output_dir"], "input_grads")
     os.makedirs(save_dir, exist_ok=True)
 
-    classifier, datamodule = load_from_hydra_logs(hydra_path, ImageClassifier)
+    classifier, datamodule, config = load_from_hydra_logs(hydra_path, ImageClassifier)
     classifier = classifier.to(device)
     classifier.eval()
     for param in classifier.parameters():
