@@ -12,6 +12,7 @@ from src.input_gradients import (
     plot_optimization_metrics,
     visualize_optimization_trajectory,
 )
+from src.models.autoencoding.autoencoder import Autoencoder
 from src.models.classification.classifier import ImageClassifier
 from src.utils import (
     get_class_names,
@@ -47,7 +48,7 @@ def main(cfg):
         shuffle=True,
         num_workers=0,  # avoid issues with multiprocessing
     )
-    print("========== Model summary ==========")
+    print("========== Classifier summary ==========")
     print(classifier)
     print(f"Len of Dataloader: {len(dataloader)}")
     x, y = next(iter(dataloader))
@@ -66,6 +67,7 @@ def main(cfg):
         classifier,
         x.clone(),
         class_names,
+        None,
         cfg["num_steps"],
         optimizer_cls,
         lr=cfg["lr"],
@@ -84,6 +86,7 @@ def main(cfg):
         classifier,
         data,
         class_names,
+        None,
         cfg["num_steps"],
         optimizer_cls,
         lr=cfg["lr"],
@@ -112,6 +115,37 @@ def main(cfg):
     visualize_optimization_trajectory(probas, traj, target=class_names[target_idx])
     plt.savefig(
         os.path.join(save_dir, "proba_optimization_trajectory.png"), dpi=cfg["dpi"]
+    )
+    plt.close()
+
+    if cfg["autoencoder_hydra_path"] is None:
+        return
+
+    autoencoder, _, config = load_from_hydra_logs(
+        cfg["autoencoder_hydra_path"], Autoencoder
+    )
+    autoencoder = autoencoder.to(cfg["device"])
+    autoencoder.eval()
+    for param in autoencoder.parameters():
+        param.requires_grad = False
+    set_seed(cfg["seed"])
+    print("========== Autoencoder summary ==========")
+    print(autoencoder)
+
+    # Optimize input data to maximize probabilities, on the manifold learned by an autoencoder
+    optimize_all_probas_wrt_data_and_plot(
+        classifier,
+        x.clone(),
+        class_names,
+        autoencoder=autoencoder,
+        num_steps=cfg["num_steps"],
+        optimizer_cls=optimizer_cls,
+        lr=cfg["lr"],
+        weight_decay=cfg["weight_decay"],
+    )
+    plt.savefig(
+        os.path.join(save_dir, "optimized_inputs_for_probas_on_manifold.png"),
+        dpi=cfg["dpi"],
     )
     plt.close()
 

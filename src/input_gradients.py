@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
@@ -25,7 +27,10 @@ def compute_proba_grad_wrt_data(
 
 
 def compute_all_probas_grads_wrt_data_and_plot(
-    classifier: nn.Module, data: torch.Tensor, logit_transform=None, class_names=None
+    classifier: nn.Module,
+    data: torch.Tensor,
+    logit_transform=None,
+    class_names: list[str] = None,
 ) -> list[torch.Tensor]:
     """
     Compute the gradient of all classifier probabilities with respect to the input data.
@@ -45,12 +50,14 @@ def compute_all_probas_grads_wrt_data_and_plot(
         data.grad = None
 
     num_classes = logits.shape[1]
+    if class_names is None:
+        class_names = [str(i) for i in range(logits.shape[1])]
     plot_grads_wrt_data(data, grads, num_classes, class_names)
 
     return grads
 
 
-def plot_grads_wrt_data(data, grads, num_classes, class_names=None):
+def plot_grads_wrt_data(data, grads, num_classes, class_names):
     """
     Plot the gradients of all classifier probabilities with respect to the input data
     for a batch of starting images.
@@ -62,13 +69,17 @@ def plot_grads_wrt_data(data, grads, num_classes, class_names=None):
     for i in range(batch_size):
         axes[i, 0].imshow(data[i].detach().cpu().numpy().transpose(1, 2, 0))
         axes[i, 0].axis("off")
+        axes[i, 0].set_title(f"M={data[i].abs().max().item():.2f}")
         for j in range(num_classes):
             axes[i, j + 1].imshow(grads[j][i].numpy().transpose(1, 2, 0))
             axes[i, j + 1].axis("off")
-            title = f"M={grads[j][i].abs().max().item():.1f}"
+            title = f"M={grads[j][i].abs().max().item():.2f}"
             # if class_names:
             #     title = f"{class_names[j]}. " + title
             axes[i, j + 1].set_title(title)
+    fig.suptitle(
+        f"Gradients of probabilities wrt input data. Columns: {['Original'] + class_names}"
+    )
     plt.tight_layout()
 
 
@@ -95,6 +106,8 @@ def optimize_proba_wrt_data(
     data = data.to(classifier.device)
     data.requires_grad = True
     optimizer = optimizer_cls([data], **optimizer_kwargs)  # type: ignore
+    # print(f"Using device: {classifier.device}")
+    # print(f"Optimizing for target class {target}")
 
     objectives, grad_norms, trajectory = [], [], {}
     for step in range(num_steps):
@@ -109,6 +122,56 @@ def optimize_proba_wrt_data(
         )
         if step == 0 or (step + 1) % save_every_k == 0:
             trajectory[step] = data.cpu().detach().clone()
+    objectives = torch.stack(objectives, dim=0)
+    grad_norms = torch.stack(grad_norms, dim=0)
+    return trajectory, objectives, grad_norms
+
+
+def optimize_proba_wrt_data_in_latent_space(
+    classifier: nn.Module,
+    autoencoder: nn.Module,
+    data: torch.Tensor,
+    target: int,
+    num_steps: int = 100,
+    optimizer_cls=None,
+    logit_transform=None,
+    save_every_k=None,
+    **optimizer_kwargs,
+):
+    """
+    Embed the input data in the latent space of the autoencoder. Optimize the latent code
+    to maximize the probability of the target class. Then decode the optimized latent code.
+    Can also specify a transformation logit_transform to apply to the logits instead of softmax.
+    """
+    if optimizer_cls is None:
+        optimizer_cls = torch.optim.SGD
+    if logit_transform is None:
+        logit_transform = lambda x: nn.functional.softmax(x, dim=1)  # noqa: E731
+    if save_every_k is None:
+        save_every_k = num_steps
+    assert (
+        autoencoder.device == classifier.device
+    ), f"Autoencoder and classifier must be on the same device; found {autoencoder.device} and {classifier.device}"
+
+    data = data.to(classifier.device)
+    latent = autoencoder.encode(data)
+    latent.requires_grad = True
+    optimizer = optimizer_cls([latent], **optimizer_kwargs)  # type: ignore
+    # print(f"Using device: {classifier.device}")
+    # print(f"Optimizing for target class {target}")
+
+    objectives, grad_norms, trajectory = [], [], {}
+    for step in range(num_steps):
+        optimizer.zero_grad()
+        data_hat = autoencoder.decode(latent)
+        logits = classifier(data_hat)
+        objs = -logit_transform(logits)[:, target]
+        objectives.append(objs.detach().cpu().clone())
+        objs.sum().backward()
+        optimizer.step()
+        grad_norms.append((latent.grad**2).mean(dim=1).sqrt().cpu().detach().clone())
+        if step == 0 or (step + 1) % save_every_k == 0:
+            trajectory[step] = autoencoder.decode(latent).cpu().detach().clone()
     objectives = torch.stack(objectives, dim=0)
     grad_norms = torch.stack(grad_norms, dim=0)
     return trajectory, objectives, grad_norms
@@ -148,7 +211,7 @@ def visualize_optimization_trajectory(objectives, trajectory, target=None):
             axes[i, j].imshow(img[i].numpy().transpose(1, 2, 0))
             # axes[i, j].set_title(f"step {step}: prob={-objectives[step, i].item():.2f}")
             title = (
-                f"M={img[i].abs().max().item():.1f}p={-objectives[step, i].item():.1f}"
+                f"M={img[i].abs().max().item():.2f}p={-objectives[step, i].item():.2f}"
             )
             axes[i, j].set_title(title)
             axes[i, j].axis("off")
@@ -160,7 +223,8 @@ def visualize_optimization_trajectory(objectives, trajectory, target=None):
 def optimize_all_probas_wrt_data_and_plot(
     classifier: nn.Module,
     data: torch.Tensor,
-    class_names,
+    class_names: list[str],
+    autoencoder: Optional[nn.Module] = None,
     num_steps: int = 100,
     optimizer_cls=None,
     logit_transform=None,
@@ -169,27 +233,43 @@ def optimize_all_probas_wrt_data_and_plot(
     """
     Optimize the input data to maximize the probability of all classes.
     Can also specify a transformation logit_transform to apply to the logits instead of softmax.
+    If an autoencoder is provided, optimize in its latent space.
     """
     batch_size = data.shape[0]
     num_classes = len(class_names)
     optimized_images = []  # target_class, batch_element
     probas = []  # target_class, batch_element
     for idx in range(num_classes):
-        trajectory, objectives, grad_norms = optimize_proba_wrt_data(
-            classifier,
-            data.clone(),
-            idx,
-            num_steps=num_steps,
-            optimizer_cls=optimizer_cls,
-            logit_transform=logit_transform,
-            save_every_k=num_steps,
-            **optimizer_kwargs,
-        )
+        if autoencoder is None:
+            trajectory, objectives, _ = optimize_proba_wrt_data(
+                classifier,
+                data.clone(),
+                idx,
+                num_steps=num_steps,
+                optimizer_cls=optimizer_cls,
+                logit_transform=logit_transform,
+                save_every_k=num_steps,
+                **optimizer_kwargs,
+            )
+        else:
+            trajectory, objectives, _ = optimize_proba_wrt_data_in_latent_space(
+                classifier,
+                autoencoder,
+                data.clone(),
+                idx,
+                num_steps=num_steps,
+                optimizer_cls=optimizer_cls,
+                logit_transform=logit_transform,
+                save_every_k=num_steps,
+                **optimizer_kwargs,
+            )
         optimized_images.append(trajectory[num_steps - 1])
         probas.append(objectives[num_steps - 1])
 
+    # if class_names is None:
+    #     class_names = [str(i) for i in range(num_classes)]
     plot_optimal_inputs_for_probas(
-        data, optimized_images, probas, batch_size, num_classes
+        data, optimized_images, probas, batch_size, num_classes, class_names
     )
 
 
@@ -199,15 +279,21 @@ def plot_optimal_inputs_for_probas(
     probas,
     batch_size,
     num_classes,
+    class_names,
 ):
     fig, axes = plt.subplots(
         batch_size, num_classes + 1, figsize=(15, 8), squeeze=False
     )
     for i in range(batch_size):
         axes[i, 0].imshow(data[i].numpy().transpose(1, 2, 0))
+        axes[i, 0].axis("off")
+        axes[i, 0].set_title(f"M={data[i].abs().max().item():.2f}")
         for j in range(num_classes):
             axes[i, j + 1].imshow(optimized_images[j][i].numpy().transpose(1, 2, 0))
             axes[i, j + 1].axis("off")
-            title = f"M={optimized_images[j][i].abs().max().item():.1f}p={-probas[j][i].item():.1f}"
+            title = f"M={optimized_images[j][i].abs().max().item():.2f}p={-probas[j][i].item():.2f}"
             axes[i, j + 1].set_title(title)
+    fig.suptitle(
+        f"Optimal inputs for maximizing probabilities. Columns: {['Original'] + class_names}"
+    )
     plt.tight_layout()
