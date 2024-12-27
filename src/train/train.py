@@ -50,8 +50,8 @@ def train(config: DictConfig, model_class):
             config=OmegaConf.to_container(config, resolve=True),
         )
         logger.watch(model, log="all", log_freq=config["logging"]["watch_freq"])
-    url = wandb.run.get_url()
-    logging.info(f"Wandb Run URL: {url}")
+        url = wandb.run.get_url()
+        logging.info(f"Wandb Run URL: {url}")
 
     trainer = pl.Trainer(
         max_epochs=config["training"]["epochs"],
