@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 import hydra
@@ -13,14 +14,16 @@ from src.utils import set_seed
 
 
 def train(config: DictConfig, model_class):
-    print(f"Working directory: {os.getcwd()}")
-    print("========== Hydra config ==========")
-    print(json.dumps(OmegaConf.to_container(config, resolve=True), indent=2))
+    logging.getLogger("pytorch_lightning").propagate = True
+
+    logging.info(f"Working directory: {os.getcwd()}")
+    logging.info("========== Hydra config ==========")
+    logging.info(json.dumps(OmegaConf.to_container(config, resolve=True), indent=2))
     set_seed(config["seed"])
     datamodule = get_datamodule(config)
     model = model_class(config)
-    print("========== Model summary ==========")
-    print(model)
+    logging.info("========== Model summary ==========")
+    logging.info(str(model))
 
     callbacks = []
     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
@@ -47,6 +50,8 @@ def train(config: DictConfig, model_class):
             config=OmegaConf.to_container(config, resolve=True),
         )
         logger.watch(model, log="all", log_freq=config["logging"]["watch_freq"])
+    url = wandb.run.get_url()
+    logging.info(f"Wandb Run URL: {url}")
 
     trainer = pl.Trainer(
         max_epochs=config["training"]["epochs"],
