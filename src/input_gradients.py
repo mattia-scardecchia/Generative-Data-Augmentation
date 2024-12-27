@@ -44,9 +44,21 @@ def compute_all_probas_grads_wrt_data_and_plot(
         grads.append(data.grad.cpu().detach())  # type: ignore
         data.grad = None
 
-    batch_size = data.shape[0]
     num_classes = logits.shape[1]
-    fig, axes = plt.subplots(batch_size, num_classes + 1, figsize=(15, 8))
+    plot_grads_wrt_data(data, grads, num_classes, class_names)
+
+    return grads
+
+
+def plot_grads_wrt_data(data, grads, num_classes, class_names=None):
+    """
+    Plot the gradients of all classifier probabilities with respect to the input data
+    for a batch of starting images.
+    """
+    batch_size = data.shape[0]
+    fig, axes = plt.subplots(
+        batch_size, num_classes + 1, figsize=(15, 8), squeeze=False
+    )
     for i in range(batch_size):
         axes[i, 0].imshow(data[i].detach().cpu().numpy().transpose(1, 2, 0))
         axes[i, 0].axis("off")
@@ -57,9 +69,7 @@ def compute_all_probas_grads_wrt_data_and_plot(
             # if class_names:
             #     title = f"{class_names[j]}. " + title
             axes[i, j + 1].set_title(title)
-
     plt.tight_layout()
-    return grads
 
 
 def optimize_proba_wrt_data(
@@ -108,7 +118,7 @@ def plot_optimization_metrics(objectives, grad_norms, target=None):
     """
     Plot the metrics during optimization.
     """
-    fig, axes = plt.subplots(1, 2, figsize=(15, 8))
+    fig, axes = plt.subplots(1, 2, figsize=(15, 8), squeeze=True)
     for i in range(objectives.shape[1]):
         axes[0].plot(range(objectives.shape[0]), -objectives[:, i], label=f"sample {i}")
     for i in range(grad_norms.shape[1]):
@@ -132,7 +142,7 @@ def visualize_optimization_trajectory(objectives, trajectory, target=None):
     """
     num_frames = len(trajectory)
     num_images = objectives.shape[1]
-    fig, axes = plt.subplots(num_images, num_frames, figsize=(15, 8))
+    fig, axes = plt.subplots(num_images, num_frames, figsize=(15, 8), squeeze=False)
     for j, (step, img) in enumerate(trajectory.items()):
         for i in range(num_images):
             axes[i, j].imshow(img[i].numpy().transpose(1, 2, 0))
@@ -178,7 +188,21 @@ def optimize_all_probas_wrt_data_and_plot(
         optimized_images.append(trajectory[num_steps - 1])
         probas.append(objectives[num_steps - 1])
 
-    fig, axes = plt.subplots(batch_size, num_classes + 1, figsize=(15, 8))
+    plot_optimal_inputs_for_probas(
+        data, optimized_images, probas, batch_size, num_classes
+    )
+
+
+def plot_optimal_inputs_for_probas(
+    data,
+    optimized_images,
+    probas,
+    batch_size,
+    num_classes,
+):
+    fig, axes = plt.subplots(
+        batch_size, num_classes + 1, figsize=(15, 8), squeeze=False
+    )
     for i in range(batch_size):
         axes[i, 0].imshow(data[i].numpy().transpose(1, 2, 0))
         for j in range(num_classes):

@@ -24,27 +24,23 @@ from src.utils import (
     config_path="../configs/eval", config_name="input_gradients", version_base="1.3"
 )
 def main(cfg):
-    lr = cfg["lr"]
-    weight_decay = cfg["weight_decay"]
-    num_steps = cfg["num_steps"]
     optimizer_cls = getattr(torch.optim, cfg["optimizer"])
     save_every_k = cfg["save_every_k"]
-    hydra_path = cfg["hydra_path"]
-    seed = cfg["seed"]
-    device = cfg["device"]
     if save_every_k == "auto":
-        save_every_k = num_steps // 10
+        save_every_k = cfg["num_steps"] // 10
 
     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
     save_dir = os.path.join(hydra_cfg["runtime"]["output_dir"], "input_grads")
     os.makedirs(save_dir, exist_ok=True)
 
-    classifier, datamodule, config = load_from_hydra_logs(hydra_path, ImageClassifier)
-    classifier = classifier.to(device)
+    classifier, datamodule, config = load_from_hydra_logs(
+        cfg["classifier_hydra_path"], ImageClassifier
+    )
+    classifier = classifier.to(cfg["device"])
     classifier.eval()
     for param in classifier.parameters():
         param.requires_grad = False
-    set_seed(seed)
+    set_seed(cfg["seed"])
     dataloader = DataLoader(
         datamodule.test_dataset,  # inherits transforms from config
         batch_size=cfg["batch_size"],
@@ -62,7 +58,7 @@ def main(cfg):
     grads = compute_all_probas_grads_wrt_data_and_plot(
         classifier, x.clone(), class_names=class_names
     )
-    plt.savefig(os.path.join(save_dir, "gradients_wrt_inputs.png"), dpi=500)
+    plt.savefig(os.path.join(save_dir, "gradients_wrt_inputs.png"), dpi=cfg["dpi"])
     plt.close()
 
     # Optimize input data to maximize probabilities
@@ -70,12 +66,14 @@ def main(cfg):
         classifier,
         x.clone(),
         class_names,
-        num_steps,
+        cfg["num_steps"],
         optimizer_cls,
-        lr=lr,
-        weight_decay=weight_decay,
+        lr=cfg["lr"],
+        weight_decay=cfg["weight_decay"],
     )
-    plt.savefig(os.path.join(save_dir, "optimized_inputs_for_probas.png"), dpi=500)
+    plt.savefig(
+        os.path.join(save_dir, "optimized_inputs_for_probas.png"), dpi=cfg["dpi"]
+    )
     plt.close()
 
     # Optimize random noise and zeros to maximize probabilities
@@ -86,12 +84,12 @@ def main(cfg):
         classifier,
         data,
         class_names,
-        num_steps,
+        cfg["num_steps"],
         optimizer_cls,
-        lr=lr,
-        weight_decay=weight_decay,
+        lr=cfg["lr"],
+        weight_decay=cfg["weight_decay"],
     )
-    plt.savefig(os.path.join(save_dir, "optimal_inputs_for_probas.png"), dpi=500)
+    plt.savefig(os.path.join(save_dir, "optimal_inputs_for_probas.png"), dpi=cfg["dpi"])
     plt.close()
 
     # Explore the optimization trajectory for a specific target class
@@ -100,17 +98,21 @@ def main(cfg):
         classifier,
         x.clone(),
         target_idx,
-        num_steps,
+        cfg["num_steps"],
         optimizer_cls,
         save_every_k=save_every_k,
-        lr=lr,
-        weight_decay=weight_decay,
+        lr=cfg["lr"],
+        weight_decay=cfg["weight_decay"],
     )
     plot_optimization_metrics(probas, grads, target=class_names[target_idx])
-    plt.savefig(os.path.join(save_dir, "proba_optimization_metrics.png"), dpi=500)
+    plt.savefig(
+        os.path.join(save_dir, "proba_optimization_metrics.png"), dpi=cfg["dpi"]
+    )
     plt.close()
     visualize_optimization_trajectory(probas, traj, target=class_names[target_idx])
-    plt.savefig(os.path.join(save_dir, "proba_optimization_trajectory.png"), dpi=500)
+    plt.savefig(
+        os.path.join(save_dir, "proba_optimization_trajectory.png"), dpi=cfg["dpi"]
+    )
     plt.close()
 
 

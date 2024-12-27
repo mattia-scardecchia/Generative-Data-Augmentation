@@ -1,13 +1,16 @@
-hydra_path: "classifiers/resnet9-fashion_mnist"
+classifier_hydra_path: "classifiers/linear-fashion_mnist"
+autoencoder_hydra_path: "autoencoders/convae-cifar10" # if null, skipped
 name: "input_gradients"
 seed: 42
-device: "cuda"
+device: "mps"
 
 lr: 0.001
 weight_decay: 0.0001
-num_steps: 3000
+num_steps: 300
 optimizer: AdamW
 save_every_k: "auto"
 
 batch_size: 4
 target_class: 3
+
+dpi: 500
