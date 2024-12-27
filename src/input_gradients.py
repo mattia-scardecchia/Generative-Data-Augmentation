@@ -90,7 +90,7 @@ def optimize_proba_wrt_data(
     num_steps: int = 100,
     optimizer_cls=None,
     logit_transform=None,
-    save_every_k=None,
+    save_k_intermediate_imgs: Optional[int] = None,
     **optimizer_kwargs,
 ):
     """
@@ -101,8 +101,9 @@ def optimize_proba_wrt_data(
         optimizer_cls = torch.optim.SGD
     if logit_transform is None:
         logit_transform = lambda x: nn.functional.softmax(x, dim=1)  # noqa: E731
-    if save_every_k is None:
-        save_every_k = num_steps
+    save_every_k = (
+        num_steps // save_k_intermediate_imgs if save_k_intermediate_imgs else num_steps
+    )
     data = data.to(classifier.device)
     data.requires_grad = True
     optimizer = optimizer_cls([data], **optimizer_kwargs)  # type: ignore
@@ -135,7 +136,7 @@ def optimize_proba_wrt_data_in_latent_space(
     num_steps: int = 100,
     optimizer_cls=None,
     logit_transform=None,
-    save_every_k=None,
+    save_k_intermediate_imgs: Optional[int] = None,
     **optimizer_kwargs,
 ):
     """
@@ -147,8 +148,9 @@ def optimize_proba_wrt_data_in_latent_space(
         optimizer_cls = torch.optim.SGD
     if logit_transform is None:
         logit_transform = lambda x: nn.functional.softmax(x, dim=1)  # noqa: E731
-    if save_every_k is None:
-        save_every_k = num_steps
+    save_every_k = (
+        num_steps // save_k_intermediate_imgs if save_k_intermediate_imgs else num_steps
+    )
     assert (
         autoencoder.device == classifier.device
     ), f"Autoencoder and classifier must be on the same device; found {autoencoder.device} and {classifier.device}"
@@ -169,7 +171,10 @@ def optimize_proba_wrt_data_in_latent_space(
         objectives.append(objs.detach().cpu().clone())
         objs.sum().backward()
         optimizer.step()
-        grad_norms.append((latent.grad**2).mean(dim=1).sqrt().cpu().detach().clone())
+        assert latent.grad is not None and latent.grad.ndim == 4
+        grad_norms.append(
+            (latent.grad**2).mean(dim=(1, 2, 3)).sqrt().cpu().detach().clone()
+        )
         if step == 0 or (step + 1) % save_every_k == 0:
             trajectory[step] = autoencoder.decode(latent).cpu().detach().clone()
     objectives = torch.stack(objectives, dim=0)
@@ -248,7 +253,7 @@ def optimize_all_probas_wrt_data_and_plot(
                 num_steps=num_steps,
                 optimizer_cls=optimizer_cls,
                 logit_transform=logit_transform,
-                save_every_k=num_steps,
+                save_k_intermediate_imgs=None,
                 **optimizer_kwargs,
             )
         else:
@@ -260,7 +265,7 @@ def optimize_all_probas_wrt_data_and_plot(
                 num_steps=num_steps,
                 optimizer_cls=optimizer_cls,
                 logit_transform=logit_transform,
-                save_every_k=num_steps,
+                save_k_intermediate_imgs=None,
                 **optimizer_kwargs,
             )
         optimized_images.append(trajectory[num_steps - 1])

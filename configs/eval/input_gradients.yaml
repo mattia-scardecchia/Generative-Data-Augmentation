@@ -1,14 +1,20 @@
-classifier_hydra_path: "classifiers/linear-fashion_mnist"
-autoencoder_hydra_path: "autoencoders/convae-cifar10" # if null, skipped
+classifier_hydra_path: "classifiers/resnet9-cifar10"
+autoencoder_hydra_path: "autoencoders/conv-cifar10"
 name: "input_gradients"
 seed: 42
 device: "mps"
+do_noae: False
+do_ae: True
 
-lr: 0.001
+lr:
+  no_ae: 0.001
+  ae: 0.001
+num_steps:
+  no_ae: 300
+  ae: 1000
 weight_decay: 0.0001
-num_steps: 300
 optimizer: AdamW
-save_every_k: "auto"
+save_k_intermediate_imgs: 10
 
 batch_size: 4
 target_class: 3
