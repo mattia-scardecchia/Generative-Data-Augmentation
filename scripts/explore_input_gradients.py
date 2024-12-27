@@ -52,7 +52,7 @@ def main(cfg):
     print(classifier)
     print(f"Len of Dataloader: {len(dataloader)}")
     x, y = next(iter(dataloader))
-    class_names = get_class_names("fashion_mnist")
+    class_names = get_class_names(config["dataset"])
     print(f"class names: {class_names}")
 
     # Compute gradients of probabilities wrt input data

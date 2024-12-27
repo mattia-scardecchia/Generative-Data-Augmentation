@@ -4,6 +4,8 @@ import torch
 from matplotlib import pyplot as plt
 from torch import nn
 
+from src.utils import prepare_tensor_image_for_plot
+
 
 def compute_proba_grad_wrt_data(
     classifier: nn.Module,
@@ -67,19 +69,17 @@ def plot_grads_wrt_data(data, grads, num_classes, class_names):
         batch_size, num_classes + 1, figsize=(15, 8), squeeze=False
     )
     for i in range(batch_size):
-        axes[i, 0].imshow(data[i].detach().cpu().numpy().transpose(1, 2, 0))
+        axes[i, 0].imshow(prepare_tensor_image_for_plot(data[i]))
         axes[i, 0].axis("off")
         axes[i, 0].set_title(f"M={data[i].abs().max().item():.2f}")
         for j in range(num_classes):
-            axes[i, j + 1].imshow(grads[j][i].numpy().transpose(1, 2, 0))
+            axes[i, j + 1].imshow(prepare_tensor_image_for_plot(grads[j][i]))
             axes[i, j + 1].axis("off")
             title = f"M={grads[j][i].abs().max().item():.2f}"
-            # if class_names:
-            #     title = f"{class_names[j]}. " + title
+            if class_names:
+                title = f"{class_names[j]}\n" + title
             axes[i, j + 1].set_title(title)
-    fig.suptitle(
-        f"Gradients of probabilities wrt input data. Columns: {['Original'] + class_names}"
-    )
+    fig.suptitle("Gradients of probabilities wrt input data.")
     plt.tight_layout()
 
 
@@ -208,7 +208,7 @@ def visualize_optimization_trajectory(objectives, trajectory, target=None):
     fig, axes = plt.subplots(num_images, num_frames, figsize=(15, 8), squeeze=False)
     for j, (step, img) in enumerate(trajectory.items()):
         for i in range(num_images):
-            axes[i, j].imshow(img[i].numpy().transpose(1, 2, 0))
+            axes[i, j].imshow(prepare_tensor_image_for_plot(img[i]))
             # axes[i, j].set_title(f"step {step}: prob={-objectives[step, i].item():.2f}")
             title = (
                 f"M={img[i].abs().max().item():.2f}p={-objectives[step, i].item():.2f}"
@@ -285,15 +285,17 @@ def plot_optimal_inputs_for_probas(
         batch_size, num_classes + 1, figsize=(15, 8), squeeze=False
     )
     for i in range(batch_size):
-        axes[i, 0].imshow(data[i].numpy().transpose(1, 2, 0))
+        axes[i, 0].imshow(prepare_tensor_image_for_plot(data[i]))
         axes[i, 0].axis("off")
         axes[i, 0].set_title(f"M={data[i].abs().max().item():.2f}")
         for j in range(num_classes):
-            axes[i, j + 1].imshow(optimized_images[j][i].numpy().transpose(1, 2, 0))
+            axes[i, j + 1].imshow(prepare_tensor_image_for_plot(optimized_images[j][i]))
             axes[i, j + 1].axis("off")
             title = f"M={optimized_images[j][i].abs().max().item():.2f}p={-probas[j][i].item():.2f}"
+            if class_names:
+                title = f"{class_names[j]}\n" + title
             axes[i, j + 1].set_title(title)
     fig.suptitle(
-        f"Optimal inputs for maximizing probabilities. Columns: {['Original'] + class_names}"
+        "Optimal inputs for maximizing probabilities starting from images in a batch."
     )
     plt.tight_layout()
