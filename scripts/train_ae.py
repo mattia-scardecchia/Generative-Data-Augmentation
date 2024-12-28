@@ -9,7 +9,8 @@ from src.train.train import train
     config_path="../configs/training", config_name="autoencoding", version_base="1.3"
 )
 def main(config: DictConfig):
-    train(config, Autoencoder)
+    model = Autoencoder(config)
+    train(config, model)
 
 
 if __name__ == "__main__":

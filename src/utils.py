@@ -7,6 +7,14 @@ from omegaconf import OmegaConf
 from src.dataset import get_datamodule
 
 
+def get_layers(model):
+    layers = []
+    for layer in model.modules():
+        if len(list(layer.children())) == 0:  # If module has no children, it's a layer
+            layers.append(layer)
+    return layers
+
+
 def set_seed(seed: int):
     random.seed(seed)
     np.random.seed(seed)

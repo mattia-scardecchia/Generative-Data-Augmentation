@@ -1,35 +1,41 @@
 import json
 import logging
 import os
+from typing import Optional
 
 import hydra
 import pytorch_lightning as pl
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
+from torch import nn
 
 import wandb
 from src.dataset import get_datamodule
 from src.utils import set_seed
 
 
-def train(config: DictConfig, model_class):
+def train(
+    config: DictConfig,
+    model: nn.Module,
+    datamodule: Optional[pl.LightningDataModule] = None,
+):
     logging.getLogger("pytorch_lightning").propagate = True
 
     logging.info(f"Working directory: {os.getcwd()}")
     logging.info("========== Hydra config ==========")
     logging.info(json.dumps(OmegaConf.to_container(config, resolve=True), indent=2))
     set_seed(config["seed"])
-    datamodule = get_datamodule(config)
-    model = model_class(config)
     logging.info("========== Model summary ==========")
     logging.info(str(model))
+    if datamodule is None:
+        datamodule = get_datamodule(config)
 
     callbacks = []
     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
     checkpoint_dir = os.path.join(
         hydra_cfg["runtime"]["output_dir"],
-        "checkpoints",
+        config["logging"]["checkpoints"]["dirname"],
     )
     checkpoint_callback = ModelCheckpoint(
         dirpath=checkpoint_dir,
@@ -42,7 +48,7 @@ def train(config: DictConfig, model_class):
     )
     callbacks.append(checkpoint_callback)
 
-    logger = None
+    logger, run_id = None, None
     if config["logging"]["wandb_logging"]:
         logger = WandbLogger(
             project=config["logging"]["wandb_project"],
@@ -52,6 +58,8 @@ def train(config: DictConfig, model_class):
         logger.watch(model, log="all", log_freq=config["logging"]["watch_freq"])
         url = wandb.run.get_url()
         logging.info(f"Wandb Run URL: {url}")
+        run_id = wandb.run.id
+        logging.info(f"Wandb Run ID: {run_id}")
 
     trainer = pl.Trainer(
         max_epochs=config["training"]["epochs"],
@@ -69,4 +77,4 @@ def train(config: DictConfig, model_class):
     if config["logging"]["wandb_logging"]:
         wandb.finish()
 
-    return model, datamodule, trainer
+    return model, datamodule, trainer, run_id

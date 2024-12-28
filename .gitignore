@@ -24,3 +24,5 @@ lightning_logs
 # checkpoints
 autoencoders
 classifiers
+
+prova.ipynb

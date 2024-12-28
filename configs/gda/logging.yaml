@@ -1,0 +1,14 @@
+logging:
+  wandb_logging: false
+  wandb_project: "autoencoders"
+  wandb_entity: "mattia-scardecchia"
+  log_freq: 10 # steps
+  image_log_freq: 500 # steps
+  watch_freq: 500 # steps
+  checkpoints:
+    checkpoint_freq: 5 # epochs
+    save_last: True
+    save_top_k: 2
+    monitor: "val/loss"
+    mode: "min"
+    dirname: "checkpoints"

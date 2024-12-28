@@ -1,0 +1,26 @@
+defaults:
+  - autoencoder@autoencoder_config
+  - classifier@classifier_config
+  - _self_
+
+name: "prova"
+
+layers:
+  - 0
+  - 10
+
+hydra:
+  job:
+    chdir: False
+    config:
+      override_dirname:
+        exclude_keys:
+          - seed
+          - name
+  run:
+    dir: outputs/${name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: cfg:${hydra.job.override_dirname}/seed=${seed}
+
+wandb_logging: ${logging.logging.wandb_logging}

@@ -1,10 +1,5 @@
 Next Steps:
 
-- try to optimize a class probability in the latent space of a trained AE.
-- write a single script that achieves the following:
-    - train a classifier
-    - for some depths, train an autoencoder
-    - save everything to disk --> probably no structure beyond checkpoint filenames?
 - write code to perform label-informed data augmentation through autoencoders (and not) 
   during classifier training --> think how to design this; should be modular and reusable
 

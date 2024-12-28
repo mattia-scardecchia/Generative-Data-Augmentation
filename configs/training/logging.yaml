@@ -1,7 +1,7 @@
 logging:
   wandb_logging: true
   wandb_project: "autoencoders"
-  wandb_entity: null
+  wandb_entity: "mattia-scardecchia"
   log_freq: 10 # steps
   image_log_freq: 500 # steps
   watch_freq: 500 # steps
@@ -11,6 +11,8 @@ logging:
     save_top_k: 2
     monitor: "val/loss"
     mode: "min"
+    dirname: "checkpoints"
+
 hydra:
   job:
     chdir: False

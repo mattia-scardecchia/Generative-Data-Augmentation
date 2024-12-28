@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -11,10 +13,12 @@ dataset_metadata = yaml.safe_load(open("src/dataset/metadata.yaml", "r"))
 
 
 class Autoencoder(pl.LightningModule):
-    def __init__(self, config):
+    def __init__(self, config, input_shape: Optional[tuple[int]] = None):
         super().__init__()
         self.config = config
         self.dataset_metadata = dataset_metadata[config["dataset"]]
+        if input_shape is not None:
+            self._update_input_shape_in_metadata(input_shape)
         self.save_hyperparameters()
         self.flatten_inputs = self.config["model"]["architecture"] in ["mlp"]
 
@@ -47,6 +51,15 @@ class Autoencoder(pl.LightningModule):
             case _:
                 raise ValueError(f"Unknown loss function: {config['training']['loss']}")
 
+    def _update_input_shape_in_metadata(self, input_shape):
+        """
+        Useful to train on hidden representations (shape is different from original images).
+        """
+        # TODO: check order C,H,W is correct/general
+        self.dataset_metadata["height"] = input_shape[-2]
+        self.dataset_metadata["width"] = input_shape[-1]
+        self.dataset_metadata["num_channels"] = input_shape[-3]
+
     def forward(self, x):
         """
         Handles flattening of inputs if necessary. Output shape is the same as input shape.
@@ -63,7 +76,10 @@ class Autoencoder(pl.LightningModule):
         loss = self.loss_fn(x_hat, x)
 
         self.log("train/loss", loss, on_step=True, on_epoch=True)
-        if batch_idx % self.config["logging"]["image_log_freq"] == 0:
+        if (
+            self.config["logging"]["image_log_freq"] is not None
+            and batch_idx % self.config["logging"]["image_log_freq"] == 0
+        ):
             self._log_images(x, y, x_hat, "train")
 
         return loss
@@ -74,7 +90,7 @@ class Autoencoder(pl.LightningModule):
         loss = self.loss_fn(x_hat, x)
 
         self.log("val/loss", loss, on_epoch=True)
-        if batch_idx == 0:
+        if self.config["logging"]["image_log_freq"] is not None and batch_idx == 0:
             self._log_images(x, y, x_hat, "val")
 
         return loss
@@ -85,7 +101,7 @@ class Autoencoder(pl.LightningModule):
         loss = self.loss_fn(x_hat, x)
 
         self.log("test/loss", loss, on_epoch=True)
-        if batch_idx == 0:
+        if self.config["logging"]["image_log_freq"] is not None and batch_idx == 0:
             self._log_images(x, y, x_hat, "test")
 
         return loss
@@ -134,3 +150,30 @@ class Autoencoder(pl.LightningModule):
         Decode latent vectors into images.
         """
         return self.decoder(z)
+
+    @staticmethod
+    def default_config():
+        return {
+            "model": {
+                "architecture": "conv",
+                "config": {
+                    "block_type": "convnext",
+                    "hidden_dims": [128, 128],
+                    "latent_dim": 32,
+                    "downsample": [2, 2],
+                    "block_kwargs": {},
+                },
+            },
+            "dataset": "cifar10",
+            "training": {
+                "epochs": 50,
+                "learning_rate": 0.001,
+                "gradient_clip_val": 1.0,
+                "weight_decay": 0.0001,
+                "val_freq": 1.0,  # fraction of epoch (float) or steps (int)
+                "loss": "mse",
+            },
+            "logging": {
+                "wandb_logging": False,
+            },
+        }
