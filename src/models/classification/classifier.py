@@ -1,9 +1,8 @@
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
-from yaml import safe_load as yaml_safe_load
-
 import wandb
+from yaml import safe_load as yaml_safe_load
 
 from . import create_classifier
 
@@ -112,7 +111,7 @@ class ImageClassifier(pl.LightningModule):
         self.logger.experiment.log({f"{prefix}-images": images})
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(
+        optimizer = torch.optim.AdamW(
             self.parameters(),
             lr=self.config["training"]["learning_rate"],
             weight_decay=self.config["training"]["weight_decay"],

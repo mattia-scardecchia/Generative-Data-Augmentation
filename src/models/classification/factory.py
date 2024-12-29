@@ -1,9 +1,8 @@
-from torchvision import models
 import torch.nn as nn
+from torchvision import models
 
-from .mlp import LinearClassifier, MLP
+from .mlp import MLP, LinearClassifier
 from .resnet9 import ResNet9
-
 
 MODEL_REGISTRY = {
     "linear": LinearClassifier,
@@ -14,7 +13,7 @@ MODEL_REGISTRY = {
 }
 
 
-def create_classifier(architecture, config, dataset_metadata):
+def create_classifier(architecture, config, dataset_metadata) -> nn.Module:
     """
     Factory function to create a model based on architecture name and config.
     """

@@ -1,4 +1,3 @@
-import copy
 import logging
 from typing import Optional, Tuple
 
@@ -62,8 +61,7 @@ class HiddenRepresentationModule(LightningDataModule):
 
     def _create_partial_model(self) -> Tuple[nn.Module, Tuple[int, ...]]:
         """Create a model that outputs the hidden representations at the specified layer."""
-        partial_model = copy.deepcopy(self.classifier)
-        layers = get_layers(partial_model)
+        layers = get_layers(self.classifier)
         if self.layer_idx >= len(layers) or self.layer_idx < 0:
             raise ValueError(f"Layer index {self.layer_idx} is out of range")
 
