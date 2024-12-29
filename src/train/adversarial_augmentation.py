@@ -8,23 +8,38 @@ from torch.nn import functional as F
 
 import wandb
 from src.utils import get_layers
+from src.models.classification.classifier import ImageClassifier
 
 
-class AdversariallyAugmentedClassifier(pl.LightningModule):
+class AdversariallyAugmentedClassifier(ImageClassifier):
     def __init__(self, config, classifier, autoencoder: Optional[nn.Module] = None):
-        super().__init__()
-        self.config = config
-        self.classifier = classifier
+        """
+        TODO: for now, classifier and chunks point to the same memory. When saving checkpoints,
+        memory is duplicated. If we simply delete self.classifier at the end of init, it will
+        break the method that loads from checkpoints (init expects classifier). Need to override
+        the checkpointinting methods to handle this.
+        """
+        super().__init__(config, classifier)
+        
         self.autoencoder = autoencoder
         if self.autoencoder is not None:
             self.autoencoder.eval()
             for param in self.autoencoder.parameters():
                 param.requires_grad = False
-
         self.layer_idx = config["layer_idx"]
-        self.save_hyperparameters()
-        self._split_classifier()
+        self.epsilon = config["adversarial_augmentation"]["epsilon"]
 
+        self._split_classifier()
+        # del self.classifier
+
+    def forward(self, x):
+        x = self.chunk1(x)
+        if self.training:  # TODO: check this
+            dx = self.compute_adversarial_perturbation(x.detach())
+            x = x + dx  # TODO: need to detach dx?
+        x = self.chunk2(x)
+        return x
+    
     def _split_classifier(self):
         """
         Splits the classifier into two consecutive chunks.
@@ -36,14 +51,6 @@ class AdversariallyAugmentedClassifier(pl.LightningModule):
 
         self.chunk1 = nn.Sequential(*layers[: self.layer_idx])
         self.chunk2 = nn.Sequential(*layers[self.layer_idx :])
-
-    def forward(self, x, training=True):
-        x = self.chunk1(x)
-        if training:
-            dx = self.compute_adversarial_perturbation(x.detach())
-            x = x + dx  # TODO: need to detach dx?
-        x = self.chunk2(x)
-        return x
 
     def compute_adversarial_perturbation(self, x):
         """
@@ -64,7 +71,7 @@ class AdversariallyAugmentedClassifier(pl.LightningModule):
             obj.backward()
             for param in self.chunk2.parameters():
                 param.requires_grad = requires_grad.popleft()
-            return x.grad * self.config["epsilon"]
+            return x.grad * self.epsilon
         else:
             z = self.autoencoder.encode(x)
             z.requires_grad = True
@@ -78,83 +85,4 @@ class AdversariallyAugmentedClassifier(pl.LightningModule):
             obj.backward()
             for param in self.chunk2.parameters():
                 param.requires_grad = requires_grad.popleft()
-            return self.autoencoder.decode(z + z.grad * self.config["epsilon"]) - x
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = F.cross_entropy(
-            logits, y, label_smoothing=self.config["training"]["label_smoothing"]
-        )
-
-        acc = (logits.argmax(dim=1) == y).float().mean()
-        self.log("train/loss", loss, on_step=True, on_epoch=True)
-        self.log("train/acc", acc, on_step=True, on_epoch=True)
-        if batch_idx % self.config["logging"]["image_log_freq"] == 0:
-            self._log_images(x, y, logits, "train")
-
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x, training=False)
-        loss = F.cross_entropy(
-            logits, y, label_smoothing=self.config["training"]["label_smoothing"]
-        )
-
-        acc = (logits.argmax(dim=1) == y).float().mean()
-        self.log("val/loss", loss, on_epoch=True)
-        self.log("val/acc", acc, on_epoch=True)
-        if batch_idx == 0:
-            self._log_images(x, y, logits, "val")
-
-        return loss
-
-    def test_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x, training=False)
-        loss = F.cross_entropy(logits, y)
-
-        acc = (logits.argmax(dim=1) == y).float().mean()
-        self.log("test/loss", loss, on_epoch=True)
-        self.log("test/acc", acc, on_epoch=True)
-        if batch_idx == 0:
-            self._log_images(x, y, logits, "test")
-
-        return loss
-
-    def _log_images(self, x, y, logits, prefix, num_images=8):
-        """
-        Log images to wandb, with true and predicted labels.
-        """
-        if not self.config["logging"]["wandb_logging"]:
-            return
-        preds = logits.argmax(dim=1)
-
-        if "class_names" in self.dataset_metadata:
-            true_labels = [
-                self.dataset_metadata["class_names"][y[i].item()]
-                for i in range(min(num_images, len(x)))
-            ]
-            pred_labels = [
-                self.dataset_metadata["class_names"][preds[i].item()]
-                for i in range(min(num_images, len(x)))
-            ]
-        else:
-            true_labels = [y[i].item() for i in range(min(num_images, len(x)))]
-            pred_labels = [preds[i].item() for i in range(min(num_images, len(x)))]
-
-        images = [
-            wandb.Image(x[i], caption=f"True: {true_labels[i]}\nPred: {pred_labels[i]}")
-            for i in range(min(num_images, len(x)))
-        ]
-
-        self.logger.experiment.log({f"{prefix}-images": images})
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(
-            self.parameters(),
-            lr=self.config["training"]["learning_rate"],
-            weight_decay=self.config["training"]["weight_decay"],
-        )
-        return optimizer
+            return self.autoencoder.decode(z + z.grad * self.epsilon) - x

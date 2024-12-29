@@ -1,6 +1,8 @@
 import logging
 from typing import Optional, Tuple
 
+from matplotlib.pyplot import cla
+
 import torch
 from pytorch_lightning import LightningDataModule
 from torch import nn
@@ -34,8 +36,7 @@ class HiddenRepresentationModule(LightningDataModule):
         classifier: nn.Module,
         layer_idx: int,
         datamodule: LightningDataModule,
-        batch_size: int = 32,
-        num_workers: int = 4,
+        config: dict,
     ):
         """
         DataModule for creating and managing hidden representation datasets.
@@ -47,13 +48,13 @@ class HiddenRepresentationModule(LightningDataModule):
             num_workers: Number of workers for dataloaders
         """
         super().__init__()
-        self.classifier = classifier
         self.layer_idx = layer_idx
-        self.batch_size = batch_size
-        self.num_workers = num_workers
+        self.batch_size = config["batch_size"]
+        self.num_workers = config["num_workers"]
+        self.device = config["device"]
 
         self.datamodule = datamodule
-        self.partial_model, self.input_shape = self._create_partial_model()
+        self.partial_model, self.input_shape = self._create_partial_model(classifier)
         self.partial_model.eval()
         for param in self.partial_model.parameters():
             param.requires_grad = False
@@ -62,16 +63,16 @@ class HiddenRepresentationModule(LightningDataModule):
         logging.info(f"Partial model:\n {self.partial_model}")
         logging.info(f"Input shape: {self.input_shape}")
 
-    def _create_partial_model(self) -> Tuple[nn.Module, Tuple[int, ...]]:
+    def _create_partial_model(self, classifier) -> Tuple[nn.Module, Tuple[int, ...]]:
         """Create a model that outputs the hidden representations at the specified layer."""
-        layers = get_layers(self.classifier)
+        layers = get_layers(classifier)
         if self.layer_idx >= len(layers) or self.layer_idx < 0:
             raise ValueError(f"Layer index {self.layer_idx} is out of range")
 
         layers = list(layers[: self.layer_idx])
-        partial_model = nn.Sequential(*layers)
+        partial_model = nn.Sequential(*layers).to(self.device)
         with torch.inference_mode():
-            data = self.datamodule.train_dataset[0][0].unsqueeze(0)
+            data = self.datamodule.train_dataset[0][0].unsqueeze(0).to(self.device)
             hidden = partial_model(data)
             input_shape = hidden.shape[1:]
 
@@ -91,8 +92,9 @@ class HiddenRepresentationModule(LightningDataModule):
 
         for batch in dataloader:
             inputs, batch_labels = batch
+            inputs = inputs.to(self.device)
             batch_hidden = self.partial_model(inputs)
-            hidden_states.append(batch_hidden)
+            hidden_states.append(batch_hidden.cpu())
             labels.append(batch_labels)
 
         hidden_states = torch.cat(hidden_states)

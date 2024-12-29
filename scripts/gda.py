@@ -1,6 +1,8 @@
+import copy
 import hydra
 from omegaconf import DictConfig
 
+from src.train import adversarial_augmentation
 import wandb
 from src.dataset.hidden_representations import HiddenRepresentationModule
 from src.models.autoencoding.autoencoder import Autoencoder
@@ -11,6 +13,8 @@ from src.train.train import train
 # TODO: expose relevant parameters to the config (e.g. epsilon)
 # TODO: create finetuninng_config in the config file
 # TODO: add some info-level logging to know what's going on
+# TODO: think again through the config system for gda, there's too many repetitions and stuff that is ignored
+# TODO: maybe make a train function specific for gda?
 
 
 @hydra.main(config_path="../configs/gda", config_name="gda", version_base="1.3")
@@ -23,6 +27,9 @@ def main(config: DictConfig):
     - have a baseline by finetuning the classifier on the original data
     - for each layer, do generative data augmentation with and without the autoencoder
     """
+
+    # ==================== classifier training ==================== #
+
     classifier = ImageClassifier(config["classifier_config"])
     classifier, datamodule, _, classifier_run_id = train(
         config["classifier_config"], classifier
@@ -35,21 +42,22 @@ def main(config: DictConfig):
         api = wandb.Api()
         parent_run = api.run(
             f"{config['classifier_config']['logging']['wandb_entity']}/{config['classifier_config']['logging']['wandb_project']}/{classifier_run_id}"
-        )  # TODO: check that entity works correctly
+        )
     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
     output_dir = hydra_cfg["runtime"]["output_dir"]
     classifier_chkpt_dir = f"{output_dir}/classifier_checkpoints"
 
+    # ==================== autoencoders training ==================== #
+
     for layer_idx in config["layers"]:
         classifier = ImageClassifier.load_from_checkpoint(
             f"{classifier_chkpt_dir}/last.ckpt"
-        )  # play safe
+        )
         hidden_datamodule = HiddenRepresentationModule(
             classifier,
             layer_idx,
             datamodule,
-            config["autoencoder_config"]["data"]["batch_size"],
-            config["autoencoder_config"]["data"]["num_workers"],
+            config["hidden_representations_dataset"],
         )
         config["autoencoder_config"]["logging"]["checkpoints"]["dirname"] = (
             f"autoencoder_{layer_idx}_checkpoints"
@@ -67,22 +75,27 @@ def main(config: DictConfig):
             derived_run.config["parent_run_id"] = parent_run.id
             derived_run.update()
 
+    # ==================== classifier finetuning with gda ==================== #
+
     # baseline
     classifier = ImageClassifier.load_from_checkpoint(
         f"{classifier_chkpt_dir}/last.ckpt"
     )
     train(config["finetuning_config"], classifier, datamodule)
 
-    # generative data augmentation
+    # gda
     for layer_idx in config["layers"]:
+        finetuning_config = copy.deepcopy(config["finetuning_config"])
+        finetuning_config["layer_idx"] = layer_idx
+
         # without autoencoder
         classifier = ImageClassifier.load_from_checkpoint(
             f"{classifier_chkpt_dir}/last.ckpt"
         )
         classifier_with_gda = AdversariallyAugmentedClassifier(
-            config={"epsilon": 0.1, "layer_idx": layer_idx}, classifier=classifier
+            config=finetuning_config, classifier=classifier
         )
-        train(config["finetuning_config"], classifier_with_gda, datamodule)
+        train(finetuning_config, classifier_with_gda, datamodule)
 
         # with autoencoder
         classifier = ImageClassifier.load_from_checkpoint(
@@ -92,11 +105,11 @@ def main(config: DictConfig):
             f"{output_dir}/autoencoder_{layer_idx}_checkpoints/last.ckpt"
         )
         classifier_with_gda = AdversariallyAugmentedClassifier(
-            config={"epsilon": 0.1, "layer_idx": layer_idx},
+            config=finetuning_config,
             classifier=classifier,
             autoencoder=autoencoder,
         )
-        train(config["finetuning_config"], classifier_with_gda, datamodule)
+        train(finetuning_config, classifier_with_gda, datamodule)
 
 
 if __name__ == "__main__":

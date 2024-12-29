@@ -1,0 +1,25 @@
+defaults:
+  - logging
+  - data
+  - _self_
+
+device: "cuda"
+seed: 43
+layer_idx: null  # set at runtime
+
+training:
+  epochs: 1
+  learning_rate: 0.0001
+  gradient_clip_val: 1.0
+  weight_decay: 0.0001
+  val_freq: 1.0 # fraction of epoch (float) or steps (int)
+  label_smoothing: 0.05
+
+adversarial_augmentation:
+  epsilon: 0.1
+
+logging:
+  checkpoints:
+    dirname: finetuning_checkpoints
+    save_last: false
+    save_top_k: 0

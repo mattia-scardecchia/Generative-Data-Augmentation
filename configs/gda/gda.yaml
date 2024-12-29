@@ -1,6 +1,7 @@
 defaults:
   - autoencoder@autoencoder_config
   - classifier@classifier_config
+  - finetuning@finetuning_config
   - _self_
 
 name: "prova"
@@ -10,6 +11,12 @@ layers:
   - 7
   - 17
   - 21
+
+# for precomputing representations
+hidden_representations_dataset:
+  batch_size: 1024  
+  num_workers: 8
+  device: "cuda"
 
 hydra:
   job:
