@@ -10,11 +10,10 @@ from src.models.classification.classifier import ImageClassifier
 from src.train.adversarial_augmentation import AdversariallyAugmentedClassifier
 from src.train.train import train
 
-# TODO: expose relevant parameters to the config (e.g. epsilon)
-# TODO: create finetuninng_config in the config file
-# TODO: add some info-level logging to know what's going on
-# TODO: think again through the config system for gda, there's too many repetitions and stuff that is ignored
+
+# TODO: rethink config system for gda, there's too many repetitions and stuff that is ignored
 # TODO: maybe make a train function specific for gda?
+# TODO: make two scripts, one for preparing the models and another for the gda (to tune hyperparameters)
 
 
 @hydra.main(config_path="../configs/gda", config_name="gda", version_base="1.3")

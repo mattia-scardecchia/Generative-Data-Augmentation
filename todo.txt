@@ -1,7 +1,7 @@
 Next Steps:
 
-- finish implementing gda (create finetuning config, test it)
-
+- reproduce results with gda on input layer
+- experiment with hidden layers
 
 
 More:
