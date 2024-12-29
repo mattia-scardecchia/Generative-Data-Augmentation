@@ -6,14 +6,16 @@ defaults:
 device: "cuda"
 seed: 43
 layer_idx: null  # set at runtime
+experiment_type: "finetune_classifier_gda"
 
 training:
-  epochs: 1
-  learning_rate: 0.0001
+  epochs: 20
+  learning_rate: 0.001
   gradient_clip_val: 1.0
-  weight_decay: 0.0001
+  weight_decay: 0.001
   val_freq: 1.0 # fraction of epoch (float) or steps (int)
   label_smoothing: 0.05
+  adam_eps: 0.0000001
 
 adversarial_augmentation:
   epsilon: 0.1

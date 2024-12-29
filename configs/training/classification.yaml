@@ -6,6 +6,7 @@ defaults:
 name: ""
 device: "cuda"
 seed: 100
+experiment_type: "train_classifier"
 
 # model:
 #   architecture: "mlp"
@@ -26,3 +27,4 @@ training:
   weight_decay: 0.0001
   val_freq: 1.0 # fraction of epoch (float) or steps (int)
   label_smoothing: 0.05
+  adam_eps: 0.0000001

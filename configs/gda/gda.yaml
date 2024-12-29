@@ -5,18 +5,20 @@ defaults:
   - _self_
 
 name: "prova"
-
 layers:
   - 0
   - 7
   - 17
   - 21
 
-# for precomputing representations
+# for precomputing internal representations
 hidden_representations_dataset:
-  batch_size: 1024  
-  num_workers: 8
-  device: "cuda"
+  precomputing:
+    batch_size: 1024  
+    num_workers: 8
+    device: "cuda"
+  batch_size: ${data.data.batch_size}
+  num_workers: ${data.data.num_workers}
 
 hydra:
   job:

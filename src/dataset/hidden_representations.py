@@ -48,10 +48,10 @@ class HiddenRepresentationModule(LightningDataModule):
             num_workers: Number of workers for dataloaders
         """
         super().__init__()
+        self.config = config
         self.layer_idx = layer_idx
         self.batch_size = config["batch_size"]
         self.num_workers = config["num_workers"]
-        self.device = config["device"]
 
         self.datamodule = datamodule
         self.partial_model, self.input_shape = self._create_partial_model(classifier)
@@ -70,9 +70,9 @@ class HiddenRepresentationModule(LightningDataModule):
             raise ValueError(f"Layer index {self.layer_idx} is out of range")
 
         layers = list(layers[: self.layer_idx])
-        partial_model = nn.Sequential(*layers).to(self.device)
+        partial_model = nn.Sequential(*layers).to(self.config["precomputing"]["device"])
         with torch.inference_mode():
-            data = self.datamodule.train_dataset[0][0].unsqueeze(0).to(self.device)
+            data = self.datamodule.train_dataset[0][0].unsqueeze(0).to(self.config["precomputing"]["device"])
             hidden = partial_model(data)
             input_shape = hidden.shape[1:]
 
@@ -85,14 +85,14 @@ class HiddenRepresentationModule(LightningDataModule):
         labels = []
         dataloader = DataLoader(
             dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
+            batch_size=self.config["precomputing"]["batch_size"],
+            num_workers=self.config["precomputing"]["num_workers"],
             shuffle=False,
         )
 
         for batch in dataloader:
             inputs, batch_labels = batch
-            inputs = inputs.to(self.device)
+            inputs = inputs.to(self.config["precomputing"]["device"])
             batch_hidden = self.partial_model(inputs)
             hidden_states.append(batch_hidden.cpu())
             labels.append(batch_labels)

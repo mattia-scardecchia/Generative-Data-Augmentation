@@ -43,6 +43,7 @@ class ImageClassifier(pl.LightningModule):
         self.label_smoothing = config["training"]["label_smoothing"]
         self.lr = config["training"]["learning_rate"]
         self.weight_decay = config["training"]["weight_decay"]
+        self.adam_eps = config["training"]["adam_eps"]
         self.image_log_freq = config["logging"]["image_log_freq"]
         self.wandb_logging = config["logging"]["wandb_logging"]
 
@@ -125,5 +126,6 @@ class ImageClassifier(pl.LightningModule):
             self.parameters(),
             lr=self.lr,
             weight_decay=self.weight_decay,
+            eps=self.adam_eps,
         )
         return optimizer

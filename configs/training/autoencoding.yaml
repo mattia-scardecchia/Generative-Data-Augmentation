@@ -6,6 +6,7 @@ defaults:
 name: ""
 device: "cuda"
 seed: 100
+experiment_type: "train_autoencoder"
 
 # model:
 #   architecture: "mlp"
@@ -32,3 +33,4 @@ training:
   weight_decay: 0.0001
   val_freq: 1.0 # fraction of epoch (float) or steps (int)
   loss: "mse"
+  adam_eps: 0.0000001

@@ -51,6 +51,8 @@ class Autoencoder(pl.LightningModule):
             case _:
                 raise ValueError(f"Unknown loss function: {config['training']['loss']}")
 
+        self.adam_eps = config["training"]["adam_eps"]
+
     def _update_input_shape_in_metadata(self, input_shape):
         """
         Useful to train on hidden representations (shape is different from original images).
@@ -136,6 +138,7 @@ class Autoencoder(pl.LightningModule):
             self.parameters(),
             lr=self.config["training"]["learning_rate"],
             weight_decay=self.config["training"]["weight_decay"],
+            eps=self.adam_eps,
         )
         return optimizer
 
