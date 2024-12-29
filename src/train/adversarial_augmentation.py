@@ -3,10 +3,10 @@ from typing import Optional
 
 import pytorch_lightning as pl
 import torch
-import wandb
 from torch import nn
 from torch.nn import functional as F
 
+import wandb
 from src.utils import get_layers
 
 
@@ -41,7 +41,7 @@ class AdversariallyAugmentedClassifier(pl.LightningModule):
         x = self.chunk1(x)
         if training:
             dx = self.compute_adversarial_perturbation(x.detach())
-            x = x + dx
+            x = x + dx  # TODO: need to detach dx?
         x = self.chunk2(x)
         return x
 

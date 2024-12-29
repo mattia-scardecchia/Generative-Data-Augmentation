@@ -12,7 +12,7 @@ model:
     block_type: "convnext"
     hidden_dims: [128, 128]
     latent_dim: 32
-    downsample: [1, 1]
+    downsample: [2, 2]
     # block_kwargs:
 
 training:

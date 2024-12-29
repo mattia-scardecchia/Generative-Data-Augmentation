@@ -54,6 +54,9 @@ class HiddenRepresentationModule(LightningDataModule):
 
         self.datamodule = datamodule
         self.partial_model, self.input_shape = self._create_partial_model()
+        self.partial_model.eval()
+        for param in self.partial_model.parameters():
+            param.requires_grad = False
 
         logging.info(f"Extracting hidden representations from layer {layer_idx}")
         logging.info(f"Partial model:\n {self.partial_model}")
@@ -68,12 +71,13 @@ class HiddenRepresentationModule(LightningDataModule):
         layers = list(layers[: self.layer_idx])
         partial_model = nn.Sequential(*layers)
         with torch.inference_mode():
-            data = self.datamodule.train_dataset[0][0]
-            hidden = partial_model(data.unsqueeze(0))
+            data = self.datamodule.train_dataset[0][0].unsqueeze(0)
+            hidden = partial_model(data)
             input_shape = hidden.shape[1:]
 
         return partial_model, input_shape
 
+    @torch.inference_mode()
     def _extract_hidden_states(self, dataset: Dataset) -> Dataset:
         """Extract hidden representations from the dataset using the partial model."""
         hidden_states = []
@@ -85,13 +89,11 @@ class HiddenRepresentationModule(LightningDataModule):
             shuffle=False,
         )
 
-        self.partial_model.eval()
-        with torch.no_grad():
-            for batch in dataloader:
-                inputs, batch_labels = batch
-                batch_hidden = self.partial_model(inputs)
-                hidden_states.append(batch_hidden)
-                labels.append(batch_labels)
+        for batch in dataloader:
+            inputs, batch_labels = batch
+            batch_hidden = self.partial_model(inputs)
+            hidden_states.append(batch_hidden)
+            labels.append(batch_labels)
 
         hidden_states = torch.cat(hidden_states)
         labels = torch.cat(labels)
@@ -135,4 +137,5 @@ class HiddenRepresentationModule(LightningDataModule):
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
+            persistent_workers=True,
         )

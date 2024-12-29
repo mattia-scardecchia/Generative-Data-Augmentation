@@ -1,9 +1,7 @@
-import copy
-
 import hydra
-import wandb
 from omegaconf import DictConfig
 
+import wandb
 from src.dataset.hidden_representations import HiddenRepresentationModule
 from src.models.autoencoding.autoencoder import Autoencoder
 from src.models.classification.classifier import ImageClassifier
@@ -38,10 +36,16 @@ def main(config: DictConfig):
         parent_run = api.run(
             f"{config['classifier_config']['logging']['wandb_entity']}/{config['classifier_config']['logging']['wandb_project']}/{classifier_run_id}"
         )  # TODO: check that entity works correctly
+    hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
+    output_dir = hydra_cfg["runtime"]["output_dir"]
+    classifier_chkpt_dir = f"{output_dir}/classifier_checkpoints"
 
     for layer_idx in config["layers"]:
+        classifier = ImageClassifier.load_from_checkpoint(
+            f"{classifier_chkpt_dir}/last.ckpt"
+        )  # play safe
         hidden_datamodule = HiddenRepresentationModule(
-            copy.deepcopy(classifier),
+            classifier,
             layer_idx,
             datamodule,
             config["autoencoder_config"]["data"]["batch_size"],
@@ -62,10 +66,6 @@ def main(config: DictConfig):
             )
             derived_run.config["parent_run_id"] = parent_run.id
             derived_run.update()
-
-    hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
-    output_dir = hydra_cfg["runtime"]["output_dir"]
-    classifier_chkpt_dir = f"{output_dir}/classifier_checkpoints"
 
     # baseline
     classifier = ImageClassifier.load_from_checkpoint(
