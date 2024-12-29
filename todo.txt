@@ -6,7 +6,14 @@ Next Steps:
 
 More:
 
-- debug why no checkpoint is saved apart from last.ckpt even when save_top_k > 1
+- when optimizing proba constrained on the AE manifold, inject noise in classifier?
+  - similar to SGD noise in analogy with weight landscape (face a noisy sample from data distro at every iteration,
+    here e.g. face a classifier from a ball around a reference one)
+  - flatness/sharpness?
+    - adversarial vs genuine examples
+    - optimizing (adversarial) with/without noise as described above
+  - mode connectivity in input space?
+    - adversarial examples different from genuine?
 - can improve:
     - statistics about latent space
     - sampling around an embedding in latent space exploration (more options, e.g. sample at multiple
