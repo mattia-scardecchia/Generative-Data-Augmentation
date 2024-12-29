@@ -3,9 +3,9 @@ defaults:
   - logging
   - _self_
 
-name: "prova"
+name: ""
 device: "cuda"
-seed: 43
+seed: 100
 
 # model:
 #   architecture: "mlp"
@@ -15,12 +15,12 @@ seed: 43
 #       - 256
 
 model:
-  architecture: "resnet18"
+  architecture: "resnet9"
   config:
     pretrained: true
 
 training:
-  epochs: 20
+  epochs: 50
   learning_rate: 0.001
   gradient_clip_val: 1.0
   weight_decay: 0.0001

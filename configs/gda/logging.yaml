@@ -1,6 +1,6 @@
 logging:
-  wandb_logging: false
-  wandb_project: "autoencoders"
+  wandb_logging: true
+  wandb_project: "generative-data-augmentation"
   wandb_entity: "mattia-scardecchia"
   log_freq: 10 # steps
   image_log_freq: 500 # steps
@@ -8,7 +8,7 @@ logging:
   checkpoints:
     checkpoint_freq: 5 # epochs
     save_last: True
-    save_top_k: 2
+    save_top_k: 0
     monitor: "val/loss"
     mode: "min"
     dirname: "checkpoints"

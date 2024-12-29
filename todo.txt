@@ -1,7 +1,6 @@
 Next Steps:
 
-- write code to perform label-informed data augmentation through autoencoders (and not) 
-  during classifier training --> think how to design this; should be modular and reusable
+- finish implementing gda (create finetuning config, test it)
 
 
 

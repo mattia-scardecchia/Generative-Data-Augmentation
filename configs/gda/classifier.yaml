@@ -11,9 +11,9 @@ seed: 43
 #   config: null
 
 model:
-  architecture: "resnet18"
+  architecture: "resnet9"
   config:
-    pretrained: true
+    pretrained: true  # ignored if unavailable
 
 training:
   epochs: 50

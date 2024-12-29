@@ -3,9 +3,9 @@ defaults:
   - logging
   - _self_
 
-name: "prova"
+name: ""
 device: "cuda"
-seed: 43
+seed: 100
 
 # model:
 #   architecture: "mlp"

@@ -7,7 +7,9 @@ name: "prova"
 
 layers:
   - 0
-  - 10
+  - 7
+  - 17
+  - 21
 
 hydra:
   job:

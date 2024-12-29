@@ -1,9 +1,9 @@
-classifier_hydra_path: "classifiers/resnet9-cifar10"
-autoencoder_hydra_path: "autoencoders/conv-cifar10"
+classifier_hydra_path: "outputs/resnet9-fashion_mnist/2024-12-27/19-52-31"
+autoencoder_hydra_path: "outputs/convae-fashion_mnist/2024-12-27/20-02-13"
 name: "input_gradients"
-seed: 42
-device: "mps"
-do_noae: False
+seed: 100
+device: "cuda"
+do_noae: True
 do_ae: True
 
 lr:
@@ -17,6 +17,6 @@ optimizer: AdamW
 save_k_intermediate_imgs: 10
 
 batch_size: 4
-target_class: 3
+target_class: 9
 
 dpi: 500
