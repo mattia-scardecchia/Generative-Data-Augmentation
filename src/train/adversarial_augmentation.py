@@ -1,14 +1,10 @@
 from collections import deque
 from typing import Optional
 
-import pytorch_lightning as pl
-import torch
 from torch import nn
-from torch.nn import functional as F
 
-import wandb
-from src.utils import get_layers
 from src.models.classification.classifier import ImageClassifier
+from src.utils import get_layers
 
 
 class AdversariallyAugmentedClassifier(ImageClassifier):
@@ -20,7 +16,7 @@ class AdversariallyAugmentedClassifier(ImageClassifier):
         the checkpointinting methods to handle this.
         """
         super().__init__(config, classifier)
-        
+
         self.autoencoder = autoencoder
         if self.autoencoder is not None:
             self.autoencoder.eval()
@@ -39,7 +35,7 @@ class AdversariallyAugmentedClassifier(ImageClassifier):
             x = x + dx  # TODO: need to detach dx?
         x = self.chunk2(x)
         return x
-    
+
     def _split_classifier(self):
         """
         Splits the classifier into two consecutive chunks.

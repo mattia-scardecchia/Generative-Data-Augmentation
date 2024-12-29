@@ -1,8 +1,6 @@
 import logging
 from typing import Optional, Tuple
 
-from matplotlib.pyplot import cla
-
 import torch
 from pytorch_lightning import LightningDataModule
 from torch import nn
@@ -72,7 +70,11 @@ class HiddenRepresentationModule(LightningDataModule):
         layers = list(layers[: self.layer_idx])
         partial_model = nn.Sequential(*layers).to(self.config["precomputing"]["device"])
         with torch.inference_mode():
-            data = self.datamodule.train_dataset[0][0].unsqueeze(0).to(self.config["precomputing"]["device"])
+            data = (
+                self.datamodule.train_dataset[0][0]
+                .unsqueeze(0)
+                .to(self.config["precomputing"]["device"])
+            )
             hidden = partial_model(data)
             input_shape = hidden.shape[1:]
 

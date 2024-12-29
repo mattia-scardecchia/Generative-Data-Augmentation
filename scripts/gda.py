@@ -1,15 +1,14 @@
 import copy
+
 import hydra
 from omegaconf import DictConfig
 
-from src.train import adversarial_augmentation
 import wandb
 from src.dataset.hidden_representations import HiddenRepresentationModule
 from src.models.autoencoding.autoencoder import Autoencoder
 from src.models.classification.classifier import ImageClassifier
 from src.train.adversarial_augmentation import AdversariallyAugmentedClassifier
 from src.train.train import train
-
 
 # TODO: rethink config system for gda, there's too many repetitions and stuff that is ignored
 # TODO: maybe make a train function specific for gda?
