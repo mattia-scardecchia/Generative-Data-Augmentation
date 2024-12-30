@@ -1,9 +1,10 @@
 from typing import Optional
+
 import pytorch_lightning as pl
 import torch
-from torch import nn
 import torch.nn.functional as F
 import wandb
+from torch import nn
 from yaml import safe_load as yaml_safe_load
 
 from . import create_classifier
@@ -31,7 +32,7 @@ class ImageClassifier(pl.LightningModule):
             * self.dataset_metadata["num_channels"]
         )
         self.dataset_metadata["input_size"] = input_size
-        
+
         if classifier is None:
             classifier = create_classifier(
                 config["model"]["architecture"],
@@ -39,11 +40,11 @@ class ImageClassifier(pl.LightningModule):
                 dataset_metadata=self.dataset_metadata,
             )
         self.classifier = classifier
-        
+
         self.label_smoothing = config["training"]["label_smoothing"]
         self.lr = config["training"]["learning_rate"]
         self.weight_decay = config["training"]["weight_decay"]
-        self.adam_eps = config["training"]["adam_eps"]
+        self.adam_eps = config["training"].get("adam_eps", 1e-8)
         self.image_log_freq = config["logging"]["image_log_freq"]
         self.wandb_logging = config["logging"]["wandb_logging"]
 
@@ -53,9 +54,7 @@ class ImageClassifier(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = F.cross_entropy(
-            logits, y, label_smoothing=self.label_smoothing
-        )
+        loss = F.cross_entropy(logits, y, label_smoothing=self.label_smoothing)
 
         acc = (logits.argmax(dim=1) == y).float().mean()
         self.log("train/loss", loss, on_step=True, on_epoch=True)
@@ -68,9 +67,7 @@ class ImageClassifier(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
-        loss = F.cross_entropy(
-            logits, y, label_smoothing=self.label_smoothing
-        )
+        loss = F.cross_entropy(logits, y, label_smoothing=self.label_smoothing)
 
         acc = (logits.argmax(dim=1) == y).float().mean()
         self.log("val/loss", loss, on_epoch=True)
@@ -129,3 +126,23 @@ class ImageClassifier(pl.LightningModule):
             eps=self.adam_eps,
         )
         return optimizer
+
+    def on_load_checkpoint(self, checkpoint):
+        """
+        Handle renamed attributes when loading checkpoint.
+        For backward compatibility with old checkpoints (sob sick me tapino).
+        """
+        state_dict = checkpoint["state_dict"]
+
+        # Create a new state dict with renamed keys
+        new_state_dict = {}
+        for key, value in state_dict.items():
+            # Replace 'model.' with 'classifier.' in the state dict keys
+            if key.startswith("model."):
+                new_key = key.replace("model.", "classifier.")
+                new_state_dict[new_key] = value
+            else:
+                new_state_dict[key] = value
+
+        # Update the checkpoint with the new state dict
+        checkpoint["state_dict"] = new_state_dict
