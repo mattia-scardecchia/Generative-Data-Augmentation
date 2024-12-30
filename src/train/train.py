@@ -5,13 +5,13 @@ from typing import Optional
 
 import hydra
 import pytorch_lightning as pl
+import wandb
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from torch import nn
 
-import wandb
-from src.dataset import get_datamodule
+from src.dataset.factory import get_datamodule
 from src.utils import set_seed
 
 

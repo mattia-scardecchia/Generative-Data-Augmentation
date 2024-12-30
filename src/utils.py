@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from omegaconf import OmegaConf
 
-from src.dataset import get_datamodule
+from src.dataset.factory import get_datamodule
 
 
 def get_layers(model):

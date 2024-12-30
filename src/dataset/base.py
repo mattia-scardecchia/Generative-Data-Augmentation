@@ -1,9 +1,12 @@
 from abc import ABC, abstractmethod
+from typing import Optional
+
 import pytorch_lightning as pl
-from torch.utils.data import DataLoader, Subset
-import torchvision as tv
 import torch
-import numpy as np
+import torchvision as tv
+from torch.utils.data import DataLoader, Subset
+
+from src.dataset.factory import get_datamodule
 
 
 class BaseDataModule(pl.LightningDataModule, ABC):
@@ -27,7 +30,10 @@ class BaseDataModule(pl.LightningDataModule, ABC):
         Read data preprocessing parameters from config and create torchvision transforms
         for train and test datasets.
         """
-        assert self.config["data"]["transforms"]["train"].keys() == self.config["data"]["transforms"]["test"].keys(), "Train and test transforms must have the same keys"
+        assert (
+            self.config["data"]["transforms"]["train"].keys()
+            == self.config["data"]["transforms"]["test"].keys()
+        ), "Train and test transforms must have the same keys"
         transforms_names = self.config["data"]["transforms"]["train"].keys()
         for phase in ["train", "test"]:
             transforms = []
@@ -139,3 +145,36 @@ class BaseDataModule(pl.LightningDataModule, ABC):
             shuffle=False,
             num_workers=self.config["data"]["num_workers"],
         )
+
+    @staticmethod
+    def get_default_dataset(
+        dataset: str, num_classes: Optional[int] = 10, samples_per_class: int = -1
+    ):
+        config = {
+            "dataset": dataset,
+            "num_classes": num_classes,
+            "data_dir": "./data/datasets",
+            "seed": 42,
+            "data": {
+                "samples_per_class": samples_per_class,
+                "batch_size": 64,
+                "num_workers": 8,
+                "train_val_split": 0.8,
+                "transforms": {
+                    "normalize": True,
+                    "train": {
+                        "RandomHorizontalFlip": {"p": 0.0},
+                        "RandomRotation": {"degrees": 0},
+                        "RandomCrop": None,
+                    },
+                    "test": {
+                        "RandomHorizontalFlip": None,
+                        "RandomRotation": None,
+                        "RandomCrop": None,
+                    },
+                },
+            },
+        }
+        datamodule = get_datamodule(config)
+        datamodule.setup()
+        return datamodule
