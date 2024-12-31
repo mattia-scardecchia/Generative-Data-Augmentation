@@ -1,15 +1,20 @@
 Next Steps:
 
-- improve augmentation:
-  - have a probability < 1 of doing the augmentation at train time
-  - condition it on the classification being correct
-  - solve TODOs in-code
-- train a classifier and autoencoders on its representations
-  - focus on input layer first
-    - here easy interpretation; log images conditionally on layer_idx == 0!
-    - use existing machinery to interpret the augmentation
-    - search for a way to do it that improves performance?
-  - add logging to judge quality of autoencoders in an interpretable way for hidden layers (e.g. look at reconstruction error vs typical magnitude or typical variation across dataset)
+- refactor input gradients module
+
+
+
+Suspended for now...
+  - improve augmentation:
+    - have a probability < 1 of doing the augmentation at train time
+    - condition it on the classification being correct
+    - solve TODOs in-code
+  - train a classifier and autoencoders on its representations
+    - focus on input layer first
+      - here easy interpretation; log images conditionally on layer_idx == 0!
+      - use existing machinery to interpret the augmentation
+      - search for a way to do it that improves performance?
+    - add logging to judge quality of autoencoders in an interpretable way for hidden layers (e.g. look at reconstruction error vs typical magnitude or typical variation across dataset)
 
 
 More:

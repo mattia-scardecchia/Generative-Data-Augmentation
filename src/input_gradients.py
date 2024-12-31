@@ -6,6 +6,11 @@ from torch import nn
 
 from src.utils import prepare_tensor_image_for_plot
 
+# TODO: this could benefit from a refactor to make it more modular and reduce code duplication,
+#       especially for optimization. Ideally have a single entrypoint to handle any number of
+#       samples and targets, with and without autoencoder. Have two sets of functions for plotting,
+#       one with fixed target and one with fixed sample.
+
 
 def compute_proba_grad_wrt_data(
     classifier: nn.Module,
@@ -61,6 +66,53 @@ def compute_all_probas_grads_wrt_data_and_plot(
     plot_grads_wrt_data(data, grads, num_classes, class_names)
 
     return grads
+
+
+def compute_all_pseudo_probas_grads_wrt_data_and_plot(
+    classifier: nn.Module,
+    autoencoder: nn.Module,
+    data: torch.Tensor,
+    logit_transform=None,
+    device=None,
+    class_names: list[str] = None,
+    epsilon: float = 1e-3,
+):
+    """
+    Compute the gradient of classifier probabilities with respect to the latent embeddings
+    of input data. Use them to visualize 'finite differences' (improper) in input space:
+    perturb embeddings in direction of gradients, decode perturbed embeddings, compute
+    differences with original images, normalize by (latent space...) step size.
+    """
+    if logit_transform is None:
+        logit_transform = lambda x: nn.functional.softmax(x, dim=1)  # noqa: E731
+    if device is None:
+        device = classifier.device
+    classifier = classifier.to(device).eval()
+    autoencoder = autoencoder.to(device).eval()
+    data = data.to(device)
+    with torch.no_grad():
+        latent = autoencoder.encode(data)
+    latent.requires_grad = True
+    data_hat = autoencoder.decode(latent)
+    logits = classifier(data_hat)
+    obj = logit_transform(logits)
+    finite_differences, grads = [], []
+    for idx in range(logits.shape[1]):
+        objective = -obj[:, idx].sum()
+        objective.backward(retain_graph=True)
+        with torch.no_grad():
+            perturbed_latent = latent + epsilon * latent.grad
+            perturbed_data_hat = autoencoder.decode(perturbed_latent)
+            delta = perturbed_data_hat - data_hat
+        finite_differences.append(delta.cpu().detach() / epsilon)
+        grads.append(latent.grad.cpu().detach())
+        latent.grad = None
+
+    num_classes = logits.shape[1]
+    if class_names is None:
+        class_names = [str(i) for i in range(logits.shape[1])]
+    plot_grads_wrt_data(data, finite_differences, num_classes, class_names)
+    return finite_differences, grads
 
 
 def plot_grads_wrt_data(data, grads, num_classes, class_names):
@@ -267,7 +319,8 @@ def optimize_proba_wrt_data_in_latent_space_fixed_target(
     autoencoder = autoencoder.to(device).eval()
     classifier = classifier.to(device).eval()
     data = data.to(device)
-    latent = autoencoder.encode(data)
+    with torch.no_grad():
+        latent = autoencoder.encode(data)
     latent.requires_grad = True
     optimizer = optimizer_cls([latent], **optimizer_kwargs)  # type: ignore
 
