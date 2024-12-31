@@ -9,10 +9,10 @@ from torch.utils.data import DataLoader
 from src.input_gradients import (
     compute_all_probas_grads_wrt_data_and_plot,
     optimize_all_probas_wrt_data_and_plot,
-    optimize_proba_wrt_data,
-    optimize_proba_wrt_data_in_latent_space,
-    plot_optimization_metrics,
-    visualize_optimization_trajectory,
+    optimize_proba_wrt_data_fixed_target,
+    optimize_proba_wrt_data_in_latent_space_fixed_target,
+    plot_optimization_metrics_fixed_target,
+    visualize_optimization_trajectory_fixed_target,
 )
 from src.models.autoencoding.autoencoder import Autoencoder
 from src.models.classification.classifier import ImageClassifier
@@ -99,7 +99,7 @@ def main(cfg):
 
         # Explore the optimization trajectory for a specific target class
         target_idx = cfg["target_class"]
-        traj, probas, grads = optimize_proba_wrt_data(
+        traj, probas, grads = optimize_proba_wrt_data_fixed_target(
             classifier,
             x.clone(),
             target_idx,
@@ -109,12 +109,16 @@ def main(cfg):
             lr=cfg["lr"]["no_ae"],
             weight_decay=cfg["weight_decay"],
         )
-        plot_optimization_metrics(probas, grads, target=class_names[target_idx])
+        plot_optimization_metrics_fixed_target(
+            probas, grads, target_name=class_names[target_idx]
+        )
         plt.savefig(
             os.path.join(save_dir, "proba_optimization_metrics.png"), dpi=cfg["dpi"]
         )
         plt.close()
-        visualize_optimization_trajectory(probas, traj, target=class_names[target_idx])
+        visualize_optimization_trajectory_fixed_target(
+            probas, traj, target_name=class_names[target_idx]
+        )
         plt.savefig(
             os.path.join(save_dir, "proba_optimization_trajectory.png"), dpi=cfg["dpi"]
         )
@@ -174,7 +178,7 @@ def main(cfg):
 
         # Explore the optimization trajectory for a specific target class, on the manifold learned by an autoencoder
         target_idx = cfg["target_class"]
-        traj, probas, grads = optimize_proba_wrt_data_in_latent_space(
+        traj, probas, grads = optimize_proba_wrt_data_in_latent_space_fixed_target(
             classifier,
             autoencoder,
             x.clone(),
@@ -185,13 +189,17 @@ def main(cfg):
             lr=cfg["lr"]["ae"],
             weight_decay=cfg["weight_decay"],
         )
-        plot_optimization_metrics(probas, grads, target=class_names[target_idx])
+        plot_optimization_metrics_fixed_target(
+            probas, grads, target_name=class_names[target_idx]
+        )
         plt.savefig(
             os.path.join(save_dir, "proba_optimization_metrics_on_manifold.png"),
             dpi=cfg["dpi"],
         )
         plt.close()
-        visualize_optimization_trajectory(probas, traj, target=class_names[target_idx])
+        visualize_optimization_trajectory_fixed_target(
+            probas, traj, target_name=class_names[target_idx]
+        )
         plt.savefig(
             os.path.join(save_dir, "proba_optimization_trajectory_on_manifold.png"),
             dpi=cfg["dpi"],

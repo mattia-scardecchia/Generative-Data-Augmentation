@@ -3,9 +3,8 @@ from typing import Optional
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import yaml
-
 import wandb
+import yaml
 
 from . import create_autoencoder
 
@@ -51,7 +50,7 @@ class Autoencoder(pl.LightningModule):
             case _:
                 raise ValueError(f"Unknown loss function: {config['training']['loss']}")
 
-        self.adam_eps = config["training"]["adam_eps"]
+        self.adam_eps = config["training"].get("adam_eps", 1e-8)
 
     def _update_input_shape_in_metadata(self, input_shape):
         """

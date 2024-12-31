@@ -20,6 +20,8 @@ class BaseDataModule(pl.LightningDataModule, ABC):
         self.test_dataset = None
         self.metadata = None
 
+        self.persistent_workers = self.config.get("persistent_workers", False)
+
     def set_metadata(self, metadata):
         for key, value in metadata.items():
             assert key not in self.__dict__, f"Metadata key {key} already exists"
@@ -126,7 +128,7 @@ class BaseDataModule(pl.LightningDataModule, ABC):
             batch_size=self.config["data"]["batch_size"],
             shuffle=True,
             num_workers=self.config["data"]["num_workers"],
-            persistent_workers=True,
+            persistent_workers=self.persistent_workers,
         )
 
     def val_dataloader(self):
@@ -135,7 +137,7 @@ class BaseDataModule(pl.LightningDataModule, ABC):
             batch_size=self.config["data"]["batch_size"],
             shuffle=False,
             num_workers=self.config["data"]["num_workers"],
-            persistent_workers=True,
+            persistent_workers=self.persistent_workers,
         )
 
     def test_dataloader(self):
@@ -144,6 +146,7 @@ class BaseDataModule(pl.LightningDataModule, ABC):
             batch_size=self.config["data"]["batch_size"],
             shuffle=False,
             num_workers=self.config["data"]["num_workers"],
+            persistent_workers=self.persistent_workers,
         )
 
     @staticmethod
@@ -158,7 +161,7 @@ class BaseDataModule(pl.LightningDataModule, ABC):
             "data": {
                 "samples_per_class": samples_per_class,
                 "batch_size": 64,
-                "num_workers": 8,
+                "num_workers": 0,
                 "train_val_split": 0.8,
                 "transforms": {
                     "normalize": True,
