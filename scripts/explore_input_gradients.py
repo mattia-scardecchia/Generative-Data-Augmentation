@@ -68,7 +68,9 @@ def main(cfg):
             targets,
             device=cfg["device"],
         )
-        fig = plot_grads_wrt_data(x.clone(), grads, targets, class_names)
+        fig = plot_grads_wrt_data(
+            x.clone(), grads, targets, class_names, figsize=cfg["figsize"]
+        )
         fig.savefig(os.path.join(save_dir, "gradients_wrt_inputs.png"), dpi=cfg["dpi"])
         plt.close()
 
@@ -90,14 +92,17 @@ def main(cfg):
             config,
             cfg["device"],
         )
-        fig = plot_optimal_images(out, class_names)
+        fig = plot_optimal_images(out, class_names, figsize=cfg["figsize"])
         fig.savefig(
             os.path.join(save_dir, "optimized_inputs_for_probas.png"),
             dpi=cfg["dpi"],
         )
         plt.close()
         fig1, fig2 = plot_optimization_trajectory_fixed_target(
-            out, cfg["fixed_target"], class_names
+            out,
+            cfg["fixed_target"],
+            class_names,
+            figsizes=(cfg["figsize"], cfg["figsize"]),
         )
         fig1.savefig(
             os.path.join(save_dir, "proba_optimization_metrics.png"),
@@ -122,14 +127,17 @@ def main(cfg):
             config,
             cfg["device"],
         )
-        fig = plot_optimal_images(out, class_names)
+        fig = plot_optimal_images(out, class_names, figsize=cfg["figsize"])
         fig.savefig(
             os.path.join(save_dir, "optimized_noise_and_zeros_for_probas.png"),
             dpi=cfg["dpi"],
         )
         plt.close()
         fig1, fig2 = plot_optimization_trajectory_fixed_target(
-            out, cfg["fixed_target"], class_names
+            out,
+            cfg["fixed_target"],
+            class_names,
+            figsizes=(cfg["figsize"], cfg["figsize"]),
         )
         fig1.savefig(
             os.path.join(save_dir, "proba_optimization_metrics_noise_and_zeros.png"),
@@ -157,6 +165,7 @@ def main(cfg):
 
         set_seed(cfg["seed"])
         save_dir = os.path.join(base_save_dir, "manifold")
+        os.makedirs(save_dir, exist_ok=True)
 
         # Compute gradients of probabilities wrt input data, on the AE manifold
         grads, finite_diffs = compute_proba_grads_wrt_data(
@@ -166,7 +175,9 @@ def main(cfg):
             autoencoder=autoencoder,
             device=cfg["device"],
         )
-        fig = plot_grads_wrt_data(x.clone(), grads, targets, class_names)
+        fig = plot_grads_wrt_data(
+            x.clone(), finite_diffs, targets, class_names, figsize=cfg["figsize"]
+        )
         fig.savefig(
             os.path.join(save_dir, "gradients_wrt_inputs.png"),
             dpi=cfg["dpi"],
@@ -192,14 +203,17 @@ def main(cfg):
             cfg["device"],
             autoencoder=autoencoder,
         )
-        fig = plot_optimal_images(out, class_names)
+        fig = plot_optimal_images(out, class_names, figsize=cfg["figsize"])
         fig.savefig(
             os.path.join(save_dir, "optimized_inputs_for_probas.png"),
             dpi=cfg["dpi"],
         )
         plt.close()
         fig1, fig2 = plot_optimization_trajectory_fixed_target(
-            out, cfg["fixed_target"], class_names
+            out,
+            cfg["fixed_target"],
+            class_names,
+            figsizes=(cfg["figsize"], cfg["figsize"]),
         )
         fig1.savefig(
             os.path.join(save_dir, "proba_optimization_metrics.png"),
@@ -225,14 +239,17 @@ def main(cfg):
             cfg["device"],
             autoencoder=autoencoder,
         )
-        fig = plot_optimal_images(out, class_names)
+        fig = plot_optimal_images(out, class_names, figsize=cfg["figsize"])
         fig.savefig(
             os.path.join(save_dir, "optimized_noise_and_zeros_for_probas.png"),
             dpi=cfg["dpi"],
         )
         plt.close()
         fig1, fig2 = plot_optimization_trajectory_fixed_target(
-            out, cfg["fixed_target"], class_names
+            out,
+            cfg["fixed_target"],
+            class_names,
+            figsizes=(cfg["figsize"], cfg["figsize"]),
         )
         fig1.savefig(
             os.path.join(save_dir, "proba_optimization_metrics_noise_and_zeros.png"),

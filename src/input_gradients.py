@@ -220,20 +220,21 @@ def _optimize_proba_wrt_data_no_autoencoder(
         x = data.clone()
         x.requires_grad = True
         optimizer = config["optimizer_cls"]([x], **config["optimizer_kwargs"])
+        trajectories[target].append((0, x.cpu().detach().clone()))
         for step in range(config["num_steps"]):
             optimizer.zero_grad()
             logits = classifier(x)
             probas = config["logit_transform"](logits)[:, target]
             (-probas.sum()).backward()  # maximize proba; batches don't interact -> sum
             optimizer.step()
-            if step == 0 or (step + 1) % config["save_every_k"] == 0:
+            if (step + 1) % config["save_every_k"] == 0:
                 trajectories[target].append((step, x.cpu().detach().clone()))
             objectives[target].append(
                 probas.detach().cpu().clone()
             )  # clone not needed... but play safe
-            grad_norms[target].append(
-                (x.grad**2).mean(dim=(1, 2, 3)).sqrt().cpu().detach().clone()
-            )
+            with torch.no_grad():
+                grad_norm = (x.grad**2).mean(dim=(1, 2, 3)).sqrt()
+            grad_norms[target].append(grad_norm.cpu().detach().clone())
         final_imgs[target] = x.cpu().detach().clone()
     objectives = {idx: torch.stack(objs, dim=0) for idx, objs in objectives.items()}
     grad_norms = {idx: torch.stack(grads, dim=0) for idx, grads in grad_norms.items()}
@@ -260,6 +261,8 @@ def _optimize_proba_wrt_data_with_autoencoder(
         z = latent.clone()
         z.requires_grad = True
         optimizer = config["optimizer_cls"]([z], **config["optimizer_kwargs"])
+        trajectories[target].append((0, data.cpu().detach().clone()))
+        latent_trajectories[target].append((0, z.cpu().detach().clone()))
         for step in range(config["num_steps"]):
             optimizer.zero_grad()
             x = autoencoder.decode(z)
@@ -267,7 +270,7 @@ def _optimize_proba_wrt_data_with_autoencoder(
             probas = config["logit_transform"](logits)[:, target]
             (-probas.sum()).backward()
             optimizer.step()
-            if step == 0 or (step + 1) % config["save_every_k"] == 0:
+            if (step + 1) % config["save_every_k"] == 0:
                 trajectories[target].append((step, x.cpu().detach().clone()))
                 latent_trajectories[target].append((step, z.cpu().detach().clone()))
             objectives[target].append(probas.detach().cpu().clone())
