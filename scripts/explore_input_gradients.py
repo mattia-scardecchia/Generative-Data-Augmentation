@@ -7,12 +7,11 @@ from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 
 from src.input_gradients import (
-    compute_all_probas_grads_wrt_data_and_plot,
-    optimize_all_probas_wrt_data_and_plot,
-    optimize_proba_wrt_data_fixed_target,
-    optimize_proba_wrt_data_in_latent_space_fixed_target,
-    plot_optimization_metrics_fixed_target,
-    visualize_optimization_trajectory_fixed_target,
+    compute_proba_grads_wrt_data,
+    optimize_proba_wrt_data,
+    plot_grads_wrt_data,
+    plot_optimal_images,
+    plot_optimization_trajectory_fixed_target,
 )
 from src.models.autoencoding.autoencoder import Autoencoder
 from src.models.classification.classifier import ImageClassifier
@@ -27,11 +26,9 @@ from src.utils import (
     config_path="../configs/eval", config_name="input_gradients", version_base="1.3"
 )
 def main(cfg):
-    optimizer_cls = getattr(torch.optim, cfg["optimizer"])
-
     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
-    save_dir = os.path.join(hydra_cfg["runtime"]["output_dir"], "input_grads")
-    os.makedirs(save_dir, exist_ok=True)
+    base_save_dir = os.path.join(hydra_cfg["runtime"]["output_dir"], "input_grads")
+    os.makedirs(base_save_dir, exist_ok=True)
 
     classifier, datamodule, config = load_from_hydra_logs(
         cfg["classifier_hydra_path"], ImageClassifier
@@ -40,87 +37,107 @@ def main(cfg):
     classifier.eval()
     for param in classifier.parameters():
         param.requires_grad = False
-    set_seed(cfg["seed"])
     dataloader = DataLoader(
         datamodule.test_dataset,  # inherits transforms from config
         batch_size=cfg["batch_size"],
         shuffle=True,
         num_workers=0,  # avoid issues with multiprocessing
     )
-    print("========== Classifier summary ==========")
-    print(classifier)
-    print(f"Len of Dataloader: {len(dataloader)}")
+
+    logging.info("========== Classifier summary ==========")
+    logging.info(str(classifier))
+    logging.info(f"Len of Dataloader: {len(dataloader)}")
     x, y = next(iter(dataloader))
     class_names = get_class_names(config["dataset"])
-    print(f"class names: {class_names}")
+    logging.info(f"class names: {class_names}")
+
+    targets = (
+        list(range(len(class_names))) if cfg["targets"] is None else cfg["targets"]
+    )
+    optimizer_cls = getattr(torch.optim, cfg["optimizer"])
 
     if cfg["do_noae"]:
+        set_seed(cfg["seed"])
+        save_dir = os.path.join(base_save_dir, "pixels")
+        os.makedirs(save_dir, exist_ok=True)
+
         # Compute gradients of probabilities wrt input data
-        grads = compute_all_probas_grads_wrt_data_and_plot(
-            classifier, x.clone(), class_names=class_names
+        grads, finite_diffs = compute_proba_grads_wrt_data(
+            classifier,
+            x.clone(),
+            targets,
+            device=cfg["device"],
         )
-        plt.savefig(os.path.join(save_dir, "gradients_wrt_inputs.png"), dpi=cfg["dpi"])
+        fig = plot_grads_wrt_data(x.clone(), grads, targets, class_names)
+        fig.savefig(os.path.join(save_dir, "gradients_wrt_inputs.png"), dpi=cfg["dpi"])
         plt.close()
 
         # Optimize input data to maximize probabilities
-        optimize_all_probas_wrt_data_and_plot(
+        config = {
+            "num_steps": cfg["num_steps"]["no_ae"],
+            "optimizer_cls": optimizer_cls,
+            "save_k_intermediate_imgs": cfg["save_k_intermediate_imgs"],
+            "logit_transform": None,
+            "optimizer_kwargs": {
+                "lr": cfg["lr"]["no_ae"],
+                "weight_decay": cfg["weight_decay"],
+            },
+        }
+        out = optimize_proba_wrt_data(
             classifier,
             x.clone(),
-            class_names,
-            None,
-            cfg["num_steps"]["no_ae"],
-            optimizer_cls,
-            lr=cfg["lr"]["no_ae"],
-            weight_decay=cfg["weight_decay"],
+            targets,
+            config,
+            cfg["device"],
         )
-        plt.savefig(
-            os.path.join(save_dir, "optimized_inputs_for_probas.png"), dpi=cfg["dpi"]
+        fig = plot_optimal_images(out, class_names)
+        fig.savefig(
+            os.path.join(save_dir, "optimized_inputs_for_probas.png"),
+            dpi=cfg["dpi"],
         )
         plt.close()
+        fig1, fig2 = plot_optimization_trajectory_fixed_target(
+            out, cfg["fixed_target"], class_names
+        )
+        fig1.savefig(
+            os.path.join(save_dir, "proba_optimization_metrics.png"),
+            dpi=cfg["dpi"],
+        )
+        fig2.savefig(
+            os.path.join(save_dir, "proba_optimization_trajectory.png"),
+            dpi=cfg["dpi"],
+        )
+        plt.close()
+        if cfg["save_tensors"]:
+            torch.save(out, os.path.join(save_dir, "optimization_output.pt"))
 
-        # Optimize random noise and zeros to maximize probabilities
+        # optimize random noise and zeros to maximize probabilities
         random_inputs = torch.randn_like(x)
         zeros = torch.zeros_like(x[0]).unsqueeze(0)
         data = torch.vstack([random_inputs, zeros])
-        optimize_all_probas_wrt_data_and_plot(
+        out = optimize_proba_wrt_data(
             classifier,
             data,
-            class_names,
-            None,
-            cfg["num_steps"]["no_ae"],
-            optimizer_cls,
-            lr=cfg["lr"]["no_ae"],
-            weight_decay=cfg["weight_decay"],
+            targets,
+            config,
+            cfg["device"],
         )
-        plt.savefig(
-            os.path.join(save_dir, "optimal_inputs_for_probas.png"), dpi=cfg["dpi"]
-        )
-        plt.close()
-
-        # Explore the optimization trajectory for a specific target class
-        target_idx = cfg["target_class"]
-        traj, probas, grads = optimize_proba_wrt_data_fixed_target(
-            classifier,
-            x.clone(),
-            target_idx,
-            cfg["num_steps"]["no_ae"],
-            optimizer_cls,
-            save_k_intermediate_imgs=cfg["save_k_intermediate_imgs"],
-            lr=cfg["lr"]["no_ae"],
-            weight_decay=cfg["weight_decay"],
-        )
-        plot_optimization_metrics_fixed_target(
-            probas, grads, target_name=class_names[target_idx]
-        )
-        plt.savefig(
-            os.path.join(save_dir, "proba_optimization_metrics.png"), dpi=cfg["dpi"]
+        fig = plot_optimal_images(out, class_names)
+        fig.savefig(
+            os.path.join(save_dir, "optimized_noise_and_zeros_for_probas.png"),
+            dpi=cfg["dpi"],
         )
         plt.close()
-        visualize_optimization_trajectory_fixed_target(
-            probas, traj, target_name=class_names[target_idx]
+        fig1, fig2 = plot_optimization_trajectory_fixed_target(
+            out, cfg["fixed_target"], class_names
         )
-        plt.savefig(
-            os.path.join(save_dir, "proba_optimization_trajectory.png"), dpi=cfg["dpi"]
+        fig1.savefig(
+            os.path.join(save_dir, "proba_optimization_metrics_noise_and_zeros.png"),
+            dpi=cfg["dpi"],
+        )
+        fig2.savefig(
+            os.path.join(save_dir, "proba_optimization_trajectory_noise_and_zeros.png"),
+            dpi=cfg["dpi"],
         )
         plt.close()
 
@@ -135,73 +152,94 @@ def main(cfg):
         autoencoder.eval()
         for param in autoencoder.parameters():
             param.requires_grad = False
-        set_seed(cfg["seed"])
-        print("========== Autoencoder summary ==========")
-        print(autoencoder)
+        logging.info("========== Autoencoder summary ==========")
+        logging.info(str(autoencoder))
 
-        # Optimize input data to maximize probabilities, on the manifold learned by an autoencoder
-        optimize_all_probas_wrt_data_and_plot(
+        set_seed(cfg["seed"])
+        save_dir = os.path.join(base_save_dir, "manifold")
+
+        # Compute gradients of probabilities wrt input data, on the AE manifold
+        grads, finite_diffs = compute_proba_grads_wrt_data(
             classifier,
             x.clone(),
-            class_names,
+            targets,
             autoencoder=autoencoder,
-            num_steps=cfg["num_steps"]["ae"],
-            optimizer_cls=optimizer_cls,
-            lr=cfg["lr"]["ae"],
-            weight_decay=cfg["weight_decay"],
+            device=cfg["device"],
         )
-        plt.savefig(
-            os.path.join(save_dir, "optimized_inputs_for_probas_on_manifold.png"),
+        fig = plot_grads_wrt_data(x.clone(), grads, targets, class_names)
+        fig.savefig(
+            os.path.join(save_dir, "gradients_wrt_inputs.png"),
             dpi=cfg["dpi"],
         )
         plt.close()
 
-        # Optimize random noise and zeros to maximize probabilities, on the manifold learned by an autoencoder
+        # Optimize input data to maximize probabilities, on the AE manifold
+        config = {
+            "num_steps": cfg["num_steps"]["ae"],
+            "optimizer_cls": optimizer_cls,
+            "save_k_intermediate_imgs": cfg["save_k_intermediate_imgs"],
+            "logit_transform": None,
+            "optimizer_kwargs": {
+                "lr": cfg["lr"]["ae"],
+                "weight_decay": cfg["weight_decay"],
+            },
+        }
+        out = optimize_proba_wrt_data(
+            classifier,
+            x.clone(),
+            targets,
+            config,
+            cfg["device"],
+            autoencoder=autoencoder,
+        )
+        fig = plot_optimal_images(out, class_names)
+        fig.savefig(
+            os.path.join(save_dir, "optimized_inputs_for_probas.png"),
+            dpi=cfg["dpi"],
+        )
+        plt.close()
+        fig1, fig2 = plot_optimization_trajectory_fixed_target(
+            out, cfg["fixed_target"], class_names
+        )
+        fig1.savefig(
+            os.path.join(save_dir, "proba_optimization_metrics.png"),
+            dpi=cfg["dpi"],
+        )
+        fig2.savefig(
+            os.path.join(save_dir, "proba_optimization_trajectory.png"),
+            dpi=cfg["dpi"],
+        )
+        plt.close()
+        if cfg["save_tensors"]:
+            torch.save(out, os.path.join(save_dir, "optimization_output.pt"))
+
+        # optimize random noise and zeros to maximize probabilities, on the AE manifold
         random_inputs = torch.randn_like(x)
         zeros = torch.zeros_like(x[0]).unsqueeze(0)
         data = torch.vstack([random_inputs, zeros])
-        optimize_all_probas_wrt_data_and_plot(
+        out = optimize_proba_wrt_data(
             classifier,
             data,
-            class_names,
+            targets,
+            config,
+            cfg["device"],
             autoencoder=autoencoder,
-            num_steps=cfg["num_steps"]["ae"],
-            optimizer_cls=optimizer_cls,
-            lr=cfg["lr"]["ae"],
-            weight_decay=cfg["weight_decay"],
         )
-        plt.savefig(
-            os.path.join(save_dir, "optimal_inputs_for_probas_on_manifold.png"),
+        fig = plot_optimal_images(out, class_names)
+        fig.savefig(
+            os.path.join(save_dir, "optimized_noise_and_zeros_for_probas.png"),
             dpi=cfg["dpi"],
         )
         plt.close()
-
-        # Explore the optimization trajectory for a specific target class, on the manifold learned by an autoencoder
-        target_idx = cfg["target_class"]
-        traj, probas, grads = optimize_proba_wrt_data_in_latent_space_fixed_target(
-            classifier,
-            autoencoder,
-            x.clone(),
-            target_idx,
-            cfg["num_steps"]["ae"],
-            optimizer_cls,
-            save_k_intermediate_imgs=cfg["save_k_intermediate_imgs"],
-            lr=cfg["lr"]["ae"],
-            weight_decay=cfg["weight_decay"],
+        fig1, fig2 = plot_optimization_trajectory_fixed_target(
+            out, cfg["fixed_target"], class_names
         )
-        plot_optimization_metrics_fixed_target(
-            probas, grads, target_name=class_names[target_idx]
-        )
-        plt.savefig(
-            os.path.join(save_dir, "proba_optimization_metrics_on_manifold.png"),
+        fig1.savefig(
+            os.path.join(save_dir, "proba_optimization_metrics_noise_and_zeros.png"),
             dpi=cfg["dpi"],
         )
-        plt.close()
-        visualize_optimization_trajectory_fixed_target(
-            probas, traj, target_name=class_names[target_idx]
-        )
-        plt.savefig(
-            os.path.join(save_dir, "proba_optimization_trajectory_on_manifold.png"),
+        fig2.savefig(
+            os.path.join(save_dir, "proba_optimization_trajectory_noise_and_zeros.png"),
             dpi=cfg["dpi"],
         )
         plt.close()

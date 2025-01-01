@@ -3,15 +3,20 @@ autoencoder_hydra_path: "outputs/convae-fashion_mnist/2024-12-27/20-02-13"
 name: "input_gradients"
 seed: 100
 device: "cuda"
+
+save_tensors: true
 do_noae: True
 do_ae: True
+
+targets: null  # null or list[int]
+fixed_target: 4
 
 lr:
   no_ae: 0.001
   ae: 0.001
 num_steps:
   no_ae: 300
-  ae: 1000
+  ae: 600
 weight_decay: 0.0001
 optimizer: AdamW
 save_k_intermediate_imgs: 10
