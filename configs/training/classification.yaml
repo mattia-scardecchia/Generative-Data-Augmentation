@@ -8,6 +8,8 @@ experiment_type: "train_classifier"
 device: "cuda"
 seed: 100
 
+dataset: "tiny_imagenet"
+
 # model:
 #   architecture: "mlp"
 #   config:

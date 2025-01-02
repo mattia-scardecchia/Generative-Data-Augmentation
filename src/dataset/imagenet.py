@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 
@@ -37,10 +38,12 @@ class TinyImageNetDataModule(BaseDataModule):
         src_path = os.path.join(path, "tiny-imagenet-200")
         dst_path = os.path.join(self.config["data_dir"], "tiny-imagenet-200")
         if not os.path.exists(dst_path):
+            logging.info(f"Moving {src_path} to {dst_path}")
             os.rename(src_path, dst_path)
             curr_wdir = os.getcwd()
             os.chdir(dst_path)
 
+            logging.info("Reorganizing data to fit ImageFolder expected structure")
             wordmap = {}
             with open("words.txt") as words, open("wnids.txt") as wnids:
                 for line in wnids:
