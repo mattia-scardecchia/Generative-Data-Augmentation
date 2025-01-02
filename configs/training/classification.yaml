@@ -18,9 +18,10 @@ dataset: "tiny_imagenet"
 #       - 256
 
 model:
-  architecture: "resnet9"
+  architecture: "resnet18"
   config:
     pretrained: true
 
 training:
   label_smoothing: 0.05
+  epochs: 1

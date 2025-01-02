@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -107,10 +108,13 @@ class BaseDataModule(pl.LightningDataModule, ABC):
         labels = torch.tensor([dataset[i][1] for i in range(len(dataset))])
         sample_indices = []
 
-        selected_classes = torch.randperm(
-            len(dataset.classes),
-            generator=torch.Generator().manual_seed(self.seed),
-        )[:num_classes]
+        if num_classes == -1:
+            selected_classes = torch.unique(labels)
+        else:
+            selected_classes = torch.randperm(
+                len(dataset.classes),
+                generator=torch.Generator().manual_seed(self.seed),
+            )[:num_classes]
 
         for class_idx in selected_classes:
             class_indices = torch.where(labels == class_idx)[0]
@@ -141,31 +145,37 @@ class BaseDataModule(pl.LightningDataModule, ABC):
         return train_dataset, val_dataset
 
     def train_dataloader(self):
-        return DataLoader(
+        dl = DataLoader(
             self.train_dataset,
             batch_size=self.config["data"]["batch_size"],
             shuffle=True,
             num_workers=self.config["data"]["num_workers"],
             persistent_workers=self.persistent_workers,
         )
+        logging.info(f"Train dataloader: {len(dl)} batches of size {dl.batch_size}")
+        return dl
 
     def val_dataloader(self):
-        return DataLoader(
+        dl = DataLoader(
             self.val_dataset,
             batch_size=self.config["data"]["batch_size"],
             shuffle=False,
             num_workers=self.config["data"]["num_workers"],
             persistent_workers=self.persistent_workers,
         )
+        logging.info(f"Val dataloader: {len(dl)} batches of size {dl.batch_size}")
+        return dl
 
     def test_dataloader(self):
-        return DataLoader(
+        dl = DataLoader(
             self.test_dataset,
             batch_size=self.config["data"]["batch_size"],
             shuffle=False,
             num_workers=self.config["data"]["num_workers"],
             persistent_workers=self.persistent_workers,
         )
+        logging.info(f"Test dataloader: {len(dl)} batches of size {dl.batch_size}")
+        return dl
 
     @staticmethod
     def get_default_dataset(
