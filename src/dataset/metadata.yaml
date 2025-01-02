@@ -1,3 +1,9 @@
+# Description: Metadata for the datasets. If provided, these are set as attributes of the datamodule in the
+# set_metadata method of BaseDataModule.
+# If you prefer setting these in code (e.g. when classes are many), ensure that the by the time set_metadata
+# returns the datamodule has the required attributes set:
+# num_classes, num_channels, height, width, mean, std, class_names
+
 cifar10:
   num_classes: 10
   num_channels: 3
@@ -11,17 +17,7 @@ cifar10:
     - 0.2023
     - 0.1994
     - 0.2010
-  class_names:
-    - airplane
-    - automobile
-    - bird
-    - cat
-    - deer
-    - dog
-    - frog
-    - horse
-    - ship
-    - truck
+  class_names: ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
 cifar100:
   num_classes: 100
@@ -36,107 +32,7 @@ cifar100:
     - 0.2675
     - 0.2565
     - 0.2761
-  class_names:
-    - apple
-    - aquarium_fish
-    - baby
-    - bear
-    - beaver
-    - bed
-    - bee
-    - beetle
-    - bicycle
-    - bottle
-    - bowl
-    - boy
-    - bridge
-    - bus
-    - butterfly
-    - camel
-    - can
-    - castle
-    - caterpillar
-    - cattle
-    - chair
-    - chimpanzee
-    - clock
-    - cloud
-    - cockroach
-    - couch
-    - crab
-    - crocodile
-    - cup
-    - dinosaur
-    - dolphin
-    - elephant
-    - flatfish
-    - forest
-    - fox
-    - girl
-    - hamster
-    - house
-    - kangaroo
-    - keyboard
-    - lamp
-    - lawn_mower
-    - leopard
-    - lion
-    - lizard
-    - lobster
-    - man
-    - maple_tree
-    - motorcycle
-    - mountain
-    - mouse
-    - mushroom
-    - oak_tree
-    - orange
-    - orchid
-    - otter
-    - palm_tree
-    - pear
-    - pickup_truck
-    - pine_tree
-    - plain
-    - plate
-    - poppy
-    - porcupine
-    - possum
-    - rabbit
-    - raccoon
-    - ray
-    - road
-    - rocket
-    - rose
-    - sea
-    - seal
-    - shark
-    - shrew
-    - skunk
-    - skyscraper
-    - snail
-    - snake
-    - spider
-    - squirrel
-    - streetcar
-    - sunflower
-    - sweet_pepper
-    - table
-    - tank
-    - telephone
-    - television
-    - tiger
-    - tractor
-    - train
-    - trout
-    - tulip
-    - turtle
-    - wardrobe
-    - whale
-    - willow_tree
-    - wolf
-    - woman
-    - worm
+  class_names: ['apple', 'aquarium_fish', 'baby', 'bear', 'beaver', 'bed', 'bee', 'beetle', 'bicycle', 'bottle', 'bowl', 'boy', 'bridge', 'bus', 'butterfly', 'camel', 'can', 'castle', 'caterpillar', 'cattle', 'chair', 'chimpanzee', 'clock', 'cloud', 'cockroach', 'couch', 'crab', 'crocodile', 'cup', 'dinosaur', 'dolphin', 'elephant', 'flatfish', 'forest', 'fox', 'girl', 'hamster', 'house', 'kangaroo', 'keyboard', 'lamp', 'lawn_mower', 'leopard', 'lion', 'lizard', 'lobster', 'man', 'maple_tree', 'motorcycle', 'mountain', 'mouse', 'mushroom', 'oak_tree', 'orange', 'orchid', 'otter', 'palm_tree', 'pear', 'pickup_truck', 'pine_tree', 'plain', 'plate', 'poppy', 'porcupine', 'possum', 'rabbit', 'raccoon', 'ray', 'road', 'rocket', 'rose', 'sea', 'seal', 'shark', 'shrew', 'skunk', 'skyscraper', 'snail', 'snake', 'spider', 'squirrel', 'streetcar', 'sunflower', 'sweet_pepper', 'table', 'tank', 'telephone', 'television', 'tiger', 'tractor', 'train', 'trout', 'tulip', 'turtle', 'wardrobe', 'whale', 'willow_tree', 'wolf', 'woman', 'worm']
 
 mnist:
   num_classes: 10
@@ -147,17 +43,7 @@ mnist:
     - 0.1307
   std:
     - 0.3081
-  class_names:
-    - 0
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-    - 6
-    - 7
-    - 8
-    - 9
+  class_names: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 fashion_mnist:
   num_classes: 10
@@ -168,14 +54,13 @@ fashion_mnist:
     - 0.2860
   std:
     - 0.3530
-  class_names:
-    - T-shirt/top
-    - Trouser
-    - Pullover
-    - Dress
-    - Coat
-    - Sandal
-    - Shirt
-    - Sneaker
-    - Bag
-    - Ankle boot
+  class_names: ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
+
+tiny_imagenet:
+  num_classes: 200
+  num_channels: 3
+  height: 64
+  width: 64
+  mean: [0.485, 0.456, 0.406] # using imagenet mean
+  std: [0.229, 0.224, 0.225]  # using imagenet std
+  class_names: ['African_elephant', 'American_alligator', 'American_lobster', 'Arabian_camel', 'CD_player', 'Chihuahua', 'Christmas_stocking', 'Egyptian_cat', 'European_fire', 'German_shepherd', 'Labrador_retriever', 'Persian_cat', 'Yorkshire_terrier', 'abacus', 'academic_gown', 'acorn', 'albatross_mollymawk', 'alp', 'altar', 'apron', 'baboon', 'backpack_back', 'banana', 'bannister_banister', 'barbershop', 'barn', 'barrel_cask', 'basketball', 'bathtub_bathing', 'beach_wagon', 'beacon_lighthouse', 'beaker', 'bee', 'beer_bottle', 'bell_pepper', 'bighorn_bighorn', 'bikini_two-piece', 'binoculars_field', 'birdhouse', 'bison', 'black_stork', 'black_widow', 'boa_constrictor', 'bow_tie', 'brain_coral', 'brass_memorial', 'broom', 'brown_bear', 'bucket_pail', 'bullet_train', 'bullfrog_Rana', 'butcher_shop', 'candle_taper', 'cannon', 'cardigan', 'cash_machine', 'cauliflower', 'centipede', 'chain', 'chest', 'chimpanzee_chimp', 'cliff_drop', 'cliff_dwelling', 'cockroach_roach', 'comic_book', 'computer_keyboard', 'confectionery_confectionary', 'convertible', 'coral_reef', 'cougar_puma', 'crane', 'dam_dike', 'desk', 'dining_table', 'dragonfly_darning', 'drumstick', 'dugong_Dugong', 'dumbbell', 'espresso', 'flagpole_flagstaff', 'fly', 'fountain', 'freight_car', 'frying_pan', 'fur_coat', 'gasmask_respirator', 'gazelle', 'go-kart', 'golden_retriever', 'goldfish_Carassius', 'gondola', 'goose', 'grasshopper_hopper', 'guacamole', 'guinea_pig', 'hog_pig', 'hourglass', 'iPod', 'ice_cream', 'ice_lolly', 'jellyfish', 'jinrikisha_ricksha', 'kimono', 'king_penguin', 'koala_koala', 'ladybug_ladybeetle', 'lakeside_lakeshore', 'lampshade_lamp', 'lawn_mower', 'lemon', 'lesser_panda', 'lifeboat', 'limousine_limo', 'lion_king', 'magnetic_compass', 'mantis_mantid', 'mashed_potato', 'maypole', 'meat_loaf', 'military_uniform', 'miniskirt_mini', 'monarch_monarch', 'moving_van', 'mushroom', 'nail', 'neck_brace', 'obelisk', 'oboe_hautboy', 'orange', 'orangutan_orang', 'organ_pipe', 'ox', 'parking_meter', 'pay-phone_pay-station', 'picket_fence', 'pill_bottle', 'pizza_pizza', 'plate', "plunger_plumber's", 'pole', 'police_van', 'pomegranate', 'poncho', 'pop_bottle', 'potpie', "potter's_wheel", 'pretzel', 'projectile_missile', 'punching_bag', 'reel', 'refrigerator_icebox', 'remote_control', 'rocking_chair', 'rugby_ball', 'sandal', 'school_bus', 'scoreboard', 'scorpion', 'sea_cucumber', 'sea_slug', 'seashore_coast', 'sewing_machine', 'slug', 'snail', 'snorkel', 'sock', 'sombrero', 'space_heater', 'spider_web', 'spiny_lobster', 'sports_car', 'standard_poodle', 'steel_arch', 'stopwatch_stop', 'sulphur_butterfly', 'sunglasses_dark', 'suspension_bridge', 'swimming_trunks', 'syringe', 'tabby_tabby', 'tailed_frog', 'tarantula', 'teapot', 'teddy_teddy', 'thatch_thatched', 'torch', 'tractor', 'trilobite', 'triumphal_arch', 'trolleybus_trolley', 'turnstile', 'umbrella', 'vestment', 'viaduct', 'volleyball', 'walking_stick', 'water_jug', 'water_tower', 'wok', 'wooden_spoon']

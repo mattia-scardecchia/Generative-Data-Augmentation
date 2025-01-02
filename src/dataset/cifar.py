@@ -1,9 +1,9 @@
-from torchvision import datasets, transforms
+from torchvision import datasets
+
 from .base import BaseDataModule
 
 
 class CIFAR10DataModule(BaseDataModule):
-
     def prepare_data(self):
         datasets.CIFAR10(self.config["data_dir"], train=True, download=True)
         datasets.CIFAR10(self.config["data_dir"], train=False, download=True)
@@ -15,7 +15,6 @@ class CIFAR10DataModule(BaseDataModule):
 
 
 class CIFAR100DataModule(BaseDataModule):
-
     def prepare_data(self):
         datasets.CIFAR100(self.config["data_dir"], train=True, download=True)
         datasets.CIFAR100(self.config["data_dir"], train=False, download=True)

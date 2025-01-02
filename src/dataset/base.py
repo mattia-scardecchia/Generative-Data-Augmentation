@@ -4,7 +4,8 @@ from typing import Optional
 import pytorch_lightning as pl
 import torch
 import torchvision as tv
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Dataset, Subset
+from yaml import safe_load as yaml_safe_load
 
 from src.dataset.factory import get_datamodule
 
@@ -20,11 +21,28 @@ class BaseDataModule(pl.LightningDataModule, ABC):
         self.test_dataset = None
         self.metadata = None
 
+        # set by set_metadata
+        self.mean = None
+        self.std = None
+        self.num_classes = None
+        self.num_channels = None
+        self.height = None
+        self.width = None
+        self.class_names = None
+
         self.persistent_workers = self.config.get("persistent_workers", False)
 
-    def set_metadata(self, metadata):
-        for key, value in metadata.items():
-            assert key not in self.__dict__, f"Metadata key {key} already exists"
+    def set_metadata(self, dataset_name: str, metadata=None):
+        """
+        Read metadata from file and set attributes. Expects that attributes are
+        initialized to None in the constructor.
+        """
+        all_metadata = yaml_safe_load(open("src/dataset/metadata.yaml", "r"))
+        assert dataset_name in all_metadata, f"Metadata for {dataset_name} not found"
+        for key, value in all_metadata[dataset_name].items():
+            assert key in self.__dict__, f"Trying to set unknown metadata key {key}"
+            curr = getattr(self, key)
+            assert curr is None, f"Metadata key {key} already set to {curr}"
             setattr(self, key, value)
 
     def setup_transforms(self):
@@ -55,7 +73,7 @@ class BaseDataModule(pl.LightningDataModule, ABC):
         pass
 
     @abstractmethod
-    def get_dataset(self, split: str, transform):
+    def get_dataset(self, split: str, transform) -> Dataset:
         """Return dataset for a given split"""
         pass
 
@@ -179,5 +197,6 @@ class BaseDataModule(pl.LightningDataModule, ABC):
             },
         }
         datamodule = get_datamodule(config)
+        datamodule.prepare_data()
         datamodule.setup()
         return datamodule
