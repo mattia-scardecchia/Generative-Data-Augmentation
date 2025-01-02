@@ -1,30 +1,22 @@
 defaults:
-  - logging
+  - /../training/base_training@_here_
   - data
+  - logging
   - _self_
 
+name: ""
+experiment_type: "pretrain_classifier_gda"
 device: "cuda"
 seed: 43
-experiment_type: "pretrain_classifier_gda"
-
-# model:
-#   architecture: "linear"
-#   config: null
-
-model:
-  architecture: "resnet9"
-  config:
-    pretrained: true  # ignored if unavailable
-
-training:
-  epochs: 1
-  learning_rate: 0.001
-  gradient_clip_val: 1.0
-  weight_decay: 0.001
-  val_freq: 1.0 # fraction of epoch (float) or steps (int)
-  label_smoothing: 0.05
-  adam_eps: 0.0000001
 
 logging:
   checkpoints:
     dirname: classifier_checkpoints
+
+model:
+  architecture: "resnet9"
+  config:
+    pretrained: true
+
+training:
+  label_smoothing: 0.05

@@ -1,3 +1,7 @@
+defaults:
+  - /../hydra@_here_
+  - _self_
+
 classifier_hydra_path: "classifiers/linear-cifar10/2024-12-27/20-41-01"
 autoencoder_hydra_path: "autoencoders/convae-cifar10/2024-12-27/20-11-11"
 name: "input_gradients"

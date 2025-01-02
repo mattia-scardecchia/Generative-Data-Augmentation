@@ -1,10 +1,12 @@
 defaults:
+  - /../hydra@_here_
   - autoencoder@autoencoder_config
   - classifier@classifier_config
   - finetuning@finetuning_config
   - _self_
 
 name: "prova"
+experiment_type: "gda"
 layers:
   - 0
   - 7
@@ -19,19 +21,5 @@ hidden_representations_dataset:
     device: "cuda"
   batch_size: ${data.data.batch_size}
   num_workers: ${data.data.num_workers}
-
-hydra:
-  job:
-    chdir: False
-    config:
-      override_dirname:
-        exclude_keys:
-          - seed
-          - name
-  run:
-    dir: outputs/${name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
-  sweep:
-    dir: multirun/${name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
-    subdir: cfg:${hydra.job.override_dirname}/seed=${seed}
 
 wandb_logging: ${logging.logging.wandb_logging}

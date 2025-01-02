@@ -1,0 +1,13 @@
+hydra:
+  job:
+    chdir: False
+    config:
+      override_dirname:
+        exclude_keys:
+          - seed
+          - name
+  run:
+    dir: outputs/${name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: cfg:${hydra.job.override_dirname}/seed=${seed}

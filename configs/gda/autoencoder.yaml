@@ -1,11 +1,13 @@
 defaults:
-  - logging
+  - /../training/base_training@_here_
   - data
+  - logging
   - _self_
 
+name: ""
+experiment_type: "train_autoencoder_gda"
 device: "cuda"
 seed: 43
-experiment_type: "train_autoencoder_gda"
 
 model:
   architecture: "conv"
@@ -16,15 +18,10 @@ model:
     downsample: [2, 2]
     # block_kwargs:
 
-training:
-  epochs: 25
-  learning_rate: 0.001
-  gradient_clip_val: 1.0
-  weight_decay: 0.001
-  val_freq: 1.0 # fraction of epoch (float) or steps (int)
-  loss: "mse"
-  adam_eps: 0.0000001
-
 logging:
+  checkpoints:
+    dirname: autoencoder_checkpoints
   image_log_freq: null
-  dirname: ""
+
+training:
+  loss: "mse"
