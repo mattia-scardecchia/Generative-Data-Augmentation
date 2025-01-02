@@ -45,31 +45,39 @@ class InterpolationStrategy(ABC):
         :param num_pairs: Number of examples to plot
         :param figsize: Figure size (width, height)
         """
-        start_images = results["start_images"]
-        interpolated = results["interpolated"]
+        interpolated, start_images, end_images = (
+            results["interpolated"],
+            results["start_images"],
+            results["end_images"],
+        )
         batch_size = start_images.shape[0]
         num_steps = interpolated.shape[1]
-
         num_pairs = min(num_pairs, batch_size)
-        rows = num_pairs
-        cols = num_steps
-        fig, axes = plt.subplots(rows, cols, figsize=figsize)
 
-        if rows == 1:
-            axes = axes[None, :]
+        fig, axes = plt.subplots(
+            2 * num_pairs, num_steps, figsize=figsize, squeeze=False
+        )
         for ax in axes.flat:
             ax.axis("off")
 
+        interpolator = LinearInterpolation()
+        pixel_interpolated = interpolator.interpolate(
+            start_images, end_images, num_steps, {}, "cpu"
+        )
+
         for i in range(num_pairs):
             for j in range(num_steps):
-                axes[i, j].imshow(prepare_tensor_image_for_plot(interpolated[i, j]))
+                axes[2 * i, j].imshow(prepare_tensor_image_for_plot(interpolated[i, j]))
+                axes[2 * i + 1, j].imshow(
+                    prepare_tensor_image_for_plot(pixel_interpolated[i, j])
+                )
                 if i == 0:
                     if j == 0:
-                        axes[i, j].set_title("Start")
+                        axes[2 * i, j].set_title("Start")
                     elif j == num_steps - 1:
-                        axes[i, j].set_title("End")
+                        axes[2 * i, j].set_title("End")
                     else:
-                        axes[i, j].set_title(f"{j/(num_steps-1):.2f}")
+                        axes[2 * i, j].set_title(f"{j/(num_steps-1):.2f}")
 
         plt.tight_layout()
 
@@ -83,6 +91,12 @@ class LinearInterpolation(InterpolationStrategy):
         config: Dict[str, Any],
         device: str,
     ) -> torch.Tensor:
+        """
+        :param start_embedding: shape [B, *embedding_dims]
+        :param end_embedding: shape [B, *embedding_dims]
+
+        :return: shape [B, num_points, *embedding_dims]
+        """
         t = torch.linspace(0, 1, num_points, device=device)
         embedding_shape = start_embedding.shape[1:]
         ones = [1 for _ in embedding_shape]
@@ -90,7 +104,7 @@ class LinearInterpolation(InterpolationStrategy):
         # Reshape for broadcasting
         start_embedding = start_embedding.unsqueeze(1)  # [B, 1, *embedding_shape]
         end_embedding = end_embedding.unsqueeze(1)  # [B, 1, *embedding_shape]
-        t = t.view(1, num_points, *ones)
+        t = t.view(1, num_points, *ones)  # [1, num_points, 1, ..., 1]
 
         return (1 - t) * start_embedding + t * end_embedding
 

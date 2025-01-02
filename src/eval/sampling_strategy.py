@@ -36,7 +36,7 @@ class SamplingStrategy(ABC):
         num_originals: int,
         num_samples: int,
         figsize: Tuple[int, int] = (15, 8),
-    ) -> None:
+    ):
         """
         Plot sampling results in a grid.
 
@@ -68,6 +68,7 @@ class SamplingStrategy(ABC):
                 if i == 0:
                     axes[i, j + 1].set_title(f"Sample {j+1}")
         plt.tight_layout()
+        return fig
 
 
 class GaussianNoiseSampling(SamplingStrategy):
@@ -79,7 +80,7 @@ class GaussianNoiseSampling(SamplingStrategy):
         device: str,
     ) -> torch.Tensor:
         """
-        Sample points around a reference embedding by adding Gaussian noise.
+        Sample points around a reference embedding perturbing multiplicatively with Gaussian noise.
         :param config: dictionary containing the following keys: stddev.
         """
         stddev = config.get("stddev", 0.1)
@@ -90,7 +91,7 @@ class GaussianNoiseSampling(SamplingStrategy):
             torch.randn((num_points, batch_size, *embedding_shape), device=device)
             * stddev
         )
-        perturbations = reference_embedding.unsqueeze(0) + noise
+        perturbations = reference_embedding.unsqueeze(0) * (1 + noise)
         return perturbations
 
 

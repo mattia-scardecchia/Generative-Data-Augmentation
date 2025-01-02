@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
@@ -19,6 +20,7 @@ class LatentExplorer:
         self,
         autoencoder: nn.Module,
         dataloader: DataLoader,
+        save_dir: Union[str, Path],
         classifier: Optional[nn.Module] = None,
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
     ):
@@ -36,6 +38,8 @@ class LatentExplorer:
         self.device = device
 
         self._cached_embeddings = None
+        self.save_dir = Path(save_dir)
+        self.save_dir.mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def from_hydra_directory(cls, dir_path: str, model_class, device: str = "cuda"):
@@ -56,7 +60,7 @@ class LatentExplorer:
             num_workers=0,  # avoid issues with multiprocessing
         )
         autoencoder = autoencoder.to(device).eval()
-        return cls(autoencoder, dataloader)
+        return cls(autoencoder, dataloader, os.path.join(dir_path, "exploration"))
 
     def explore_around_image_in_latent_space(
         self,
@@ -119,11 +123,11 @@ class LatentExplorer:
         :param config: Configuration dictionary for the interpolation strategy
         :param seed: Random seed for reproducibility
         :return: Dictionary containing:
-            - 'start_images': Original starting images
-            - 'end_images': Original ending images
-            - 'start_embeddings': Starting point embeddings
-            - 'end_embeddings': Ending point embeddings
-            - 'interpolated': Interpolated and decoded images
+            - 'start_images': Original starting images. shape [B, C, H, W]
+            - 'end_images': Original ending images. shape [B, C, H, W]
+            - 'start_embeddings': Starting point embeddings. shape [B, *embedding_dims]
+            - 'end_embeddings': Ending point embeddings. shape [B, *embedding_dims]
+            - 'interpolated': Interpolated and decoded images. shape [B, num_points, C, H, W]
         """
         if seed is not None:
             set_seed(seed)
@@ -276,7 +280,6 @@ class LatentExplorer:
     def plot_latent_space_statistics(
         self,
         stats: Dict[str, Any],
-        save_dir: Union[str, Path],
         dpi: int = 300,
         figsize_base: tuple[int, int] = (15, 8),
     ) -> None:
@@ -285,13 +288,9 @@ class LatentExplorer:
 
         Args:
             stats: Dictionary of statistics from get_latent_space_statistics
-            save_dir: Directory to save plots
             dpi: DPI for saved figures
             figsize_base: Base figure size to use (will be adjusted for some plots)
         """
-        save_dir = Path(save_dir)
-        save_dir.mkdir(parents=True, exist_ok=True)
-
         # 1. Distribution of embedding norms
         plt.figure(figsize=figsize_base)
         norms_data = np.linalg.norm(stats["dimension_distributions"]["values"], axis=1)
@@ -301,7 +300,9 @@ class LatentExplorer:
         plt.xlabel("L2 Norm")
         plt.ylabel("Count")
         plt.savefig(
-            save_dir / "normalized_norms_histogram.png", dpi=dpi, bbox_inches="tight"
+            self.save_dir / "normalized_norms_histogram.png",
+            dpi=dpi,
+            bbox_inches="tight",
         )
         plt.close()
 
@@ -318,7 +319,7 @@ class LatentExplorer:
         )
         plt.title("Dimension-wise Correlation Matrix")
         plt.savefig(
-            save_dir / "embedding_coordinates_correlation_matrix.png",
+            self.save_dir / "embedding_coordinates_correlation_matrix.png",
             dpi=dpi,
             bbox_inches="tight",
         )
@@ -345,7 +346,7 @@ class LatentExplorer:
             axes[i].set_visible(False)
         plt.tight_layout()
         plt.savefig(
-            save_dir / "embedding_coordinates_histograms.png",
+            self.save_dir / "embedding_coordinates_histograms.png",
             dpi=dpi,
             bbox_inches="tight",
         )
@@ -359,7 +360,7 @@ class LatentExplorer:
         plt.ylabel("Value")
         plt.xticks(rotation=90 if num_plots > 10 else 0)
         plt.savefig(
-            save_dir / "embedding_coordinates_boxplots.png",
+            self.save_dir / "embedding_coordinates_boxplots.png",
             dpi=dpi,
             bbox_inches="tight",
         )
@@ -377,7 +378,7 @@ class LatentExplorer:
         plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
         plt.grid(True)
         plt.savefig(
-            save_dir / "embedding_coordinates_percentiles.png",
+            self.save_dir / "embedding_coordinates_percentiles.png",
             dpi=dpi,
             bbox_inches="tight",
         )
@@ -399,7 +400,9 @@ class LatentExplorer:
             plt.ylabel(
                 f'PC2 ({stats["pca"]["explained_variance_ratio"][1]:.1%} variance)'
             )
-            plt.savefig(save_dir / "pca_projection.png", dpi=dpi, bbox_inches="tight")
+            plt.savefig(
+                self.save_dir / "pca_projection.png", dpi=dpi, bbox_inches="tight"
+            )
             plt.close()
 
             plt.figure(figsize=figsize_base)
@@ -409,7 +412,9 @@ class LatentExplorer:
             plt.ylabel("Explained Variance Ratio")
             plt.grid(True)
             plt.savefig(
-                save_dir / "pca_explained_variance.png", dpi=dpi, bbox_inches="tight"
+                self.save_dir / "pca_explained_variance.png",
+                dpi=dpi,
+                bbox_inches="tight",
             )
             plt.close()
 
@@ -420,7 +425,7 @@ class LatentExplorer:
             plt.ylabel("Cumulative Explained Variance Ratio")
             plt.grid(True)
             plt.savefig(
-                save_dir / "pca_cumulative_explained_variance.png",
+                self.save_dir / "pca_cumulative_explained_variance.png",
                 dpi=dpi,
                 bbox_inches="tight",
             )
