@@ -1,7 +1,7 @@
 import copy
 import logging
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -236,167 +236,168 @@ def compute_input_flatness(
     return dict(results)
 
 
+def _filter_misclassified(
+    results: dict, x: torch.Tensor, y: torch.Tensor
+) -> tuple[dict, torch.Tensor, torch.Tensor]:
+    """Filter out misclassified samples from results and data."""
+    original_logits = results[min(results.keys())]["logits"][0]
+    predictions = torch.argmax(original_logits, dim=1)
+    correct_mask = predictions == y
+
+    filtered_x = x[correct_mask]
+    filtered_y = y[correct_mask]
+    filtered_results = {}
+
+    for noise in results:
+        filtered_results[noise] = {
+            "target_probas": torch.stack(
+                [p[correct_mask] for p in results[noise]["target_probas"]]
+            ),
+            "logits": torch.stack([l[correct_mask] for l in results[noise]["logits"]]),
+        }
+
+    return filtered_results, filtered_x, filtered_y
+
+
+def _plot_individual_samples(
+    ax,
+    noise_levels: list,
+    results: dict,
+    y: torch.Tensor,
+    num_samples: int,
+    num_trials: int,
+    class_names: list = None,
+) -> None:
+    """Plot individual sample trajectories."""
+    colors = plt.cm.rainbow(np.linspace(0, 1, len(torch.unique(y))))
+    sample_means = torch.zeros(num_samples, len(noise_levels))
+    sample_stds = torch.zeros(num_samples, len(noise_levels))
+
+    for i, noise in enumerate(noise_levels):
+        probs = results[noise]["target_probas"]  # (num_trials, batch_size)
+        sample_means[:, i] = probs.mean(dim=0)[:num_samples]
+        sample_stds[:, i] = probs.std(dim=0)[:num_samples] / (num_trials**0.5)
+
+    for sample_idx in range(num_samples):
+        label = class_names[y[sample_idx]] if class_names else f"Class {y[sample_idx]}"
+        ax.errorbar(
+            noise_levels,
+            sample_means[sample_idx].cpu(),
+            yerr=sample_stds[sample_idx].cpu(),
+            marker="o",
+            capsize=5,
+            label=label,
+            color=colors[y[sample_idx]],
+            alpha=0.5,
+        )
+
+
+def _plot_class_averages(
+    ax,
+    noise_levels: list,
+    results: dict,
+    y: torch.Tensor,
+    num_samples: int,
+    num_trials: int,
+    class_names: list = None,
+) -> dict:
+    """Plot class-averaged trajectories and return class statistics."""
+    num_classes = len(torch.unique(y))
+    colors = plt.cm.rainbow(np.linspace(0, 1, num_classes))
+    class_stats = {i: {"means": [], "sems": [], "count": 0} for i in range(num_classes)}
+
+    for class_idx in range(num_classes):
+        class_mask = y[:num_samples] == class_idx
+        class_stats[class_idx]["count"] = class_mask.sum().item()
+        if not torch.any(class_mask):
+            continue
+
+        for noise in noise_levels:
+            probs = results[noise]["target_probas"][:, class_mask]
+            mean_prob = probs.mean().item()
+            sem_prob = probs.std().item() / (probs.numel() ** 0.5)
+            class_stats[class_idx]["means"].append(mean_prob)
+            class_stats[class_idx]["sems"].append(sem_prob)
+
+        label = f"{class_names[class_idx] if class_names else f'Class {class_idx}'} (n={class_stats[class_idx]['count']})"
+        ax.errorbar(
+            noise_levels,
+            class_stats[class_idx]["means"],
+            yerr=class_stats[class_idx]["sems"],
+            marker="o",
+            capsize=5,
+            label=label,
+            color=colors[class_idx],
+            linewidth=2,
+        )
+
+    return class_stats
+
+
+def _print_class_summary(noise_levels: list, class_stats: dict) -> None:
+    """Print summary statistics for each class."""
+    print("\nClass-Averaged Summary Statistics:")
+    for class_idx, stats in class_stats.items():
+        if stats["count"] == 0:
+            continue
+        print(f"\nClass {class_idx} (n={stats['count']}):")
+        print(f"{'Noise Level':^12} | {'Mean Prob':^12} | {'SEM':^12}")
+        print("-" * 40)
+        for noise, mean_p, sem_p in zip(noise_levels, stats["means"], stats["sems"]):
+            print(f"{noise:^12.2f} | {mean_p:^12.4f} | {sem_p:^12.4f}")
+
+
 def plot_input_flatness(
     results: dict,
     x: torch.Tensor,
     y: torch.Tensor,
     target: int = -1,
     num_samples: Optional[int] = None,
-    figsize: Tuple[int, int] = (12, 5),
-    class_names: Optional[List[str]] = None,
+    figsize: tuple[int, int] = (12, 5),
+    class_names: Optional[list[str]] = None,
     filter_misclassified: bool = False,
     print_summary: bool = True,
 ) -> None:
-    """
-    Plot the results from compute_input_local_energy showing how model predictions
+    """Plot the results from compute_input_local_energy showing how model predictions
     change with different noise levels. The first subplot shows individual samples,
-    while the second subplot shows averages grouped by class.
-
-    Args:
-        results: Dictionary output from compute_input_local_energy
-        x: Original input tensor batch that was analyzed, shape (B, C, H, W)
-        y: Ground truth labels for the batch
-        target: Target class to plot probabilities for. If -1, uses stored target_probas
-        num_samples: Number of samples to plot. If None, uses full batch size
-        figsize: Figure size for the plot
-        class_names: Optional list of class names for labels
-    """
+    while the second subplot shows averages grouped by class."""
     if filter_misclassified:
-        original_logits = results[min(results.keys())]["logits"][
-            0
-        ]  # Take first trial of smallest noise
-        predictions = torch.argmax(original_logits, dim=1)
-        correct_mask = predictions == y
-        x = x[correct_mask]
-        y = y[correct_mask]
-
-        for noise in results:
-            results[noise]["target_probas"] = torch.stack(
-                [p[correct_mask.cpu().numpy()] for p in results[noise]["target_probas"]]
-            )
-            results[noise]["logits"] = torch.stack(
-                [l[correct_mask] for l in results[noise]["logits"]]
-            )
-
-        print(
-            f"Filtered: kept {correct_mask.sum().item()}/{len(correct_mask)} correctly classified samples (considered predictions with stddev {min(results.keys())})"
-        )
+        results, x, y = _filter_misclassified(results, x, y)
 
     batch_size = x.size(0)
-    if num_samples is None:
-        num_samples = batch_size
-    num_samples = min(num_samples, batch_size)
+    num_samples = min(num_samples or batch_size, batch_size)
     num_trials = len(list(results.values())[0]["target_probas"])
-    num_classes = list(results.values())[0]["logits"].size(2)
+    noise_levels = sorted([float(k) for k in results.keys()])
+
+    if target != -1:
+        for noise in results:
+            logits = torch.stack(results[noise]["logits"])
+            results[noise]["target_probas"] = torch.softmax(logits, dim=2)[:, :, target]
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
-    noise_levels = sorted([float(k) for k in results.keys()])
-    colors = plt.cm.rainbow(np.linspace(0, 1, num_classes))
 
-    # For individual sample plots
-    sample_means = {i: [] for i in range(num_samples)}
-    sample_stds = {i: [] for i in range(num_samples)}
-    # For class-averaged plots
-    class_means = {i: [] for i in range(num_classes)}
-    class_sems = {i: [] for i in range(num_classes)}
-    class_counts = {i: 0 for i in range(num_classes)}
-    for i in range(num_samples):
-        class_counts[y[i].item()] += 1
-
-    for noise in noise_levels:
-        if target == -1:
-            probs = np.array(
-                results[noise]["target_probas"]
-            )  # (num_trials, batch_size)
-        else:
-            logits = torch.stack(results[noise]["logits"])
-            probs = (
-                torch.softmax(logits, dim=2)[:, :, target].cpu().numpy()
-            )  # (num_trials, batch_size)
-
-        # Calculate statistics for individual samples
-        for sample_idx in range(num_samples):
-            sample_probs = probs[:, sample_idx]  # (num_trials,)
-            mean_prob = np.mean(sample_probs)
-            std_prob = np.std(sample_probs)
-            sample_means[sample_idx].append(mean_prob)
-            sample_stds[sample_idx].append(std_prob)
-
-        # Calculate statistics grouped by class
-        for class_idx in range(num_classes):
-            class_mask = y[:num_samples] == class_idx
-            if not torch.any(class_mask):
-                continue
-
-            class_probs = probs[
-                :, class_mask.cpu().numpy()
-            ]  # (num_trials, num_samples_in_class)
-            class_mean = np.mean(class_probs)
-            class_sem = np.std(class_probs) / np.sqrt(class_probs.size)
-            class_means[class_idx].append(class_mean)
-            class_sems[class_idx].append(class_sem)
-
-    # Plot 1: Individual samples
-    for sample_idx in range(num_samples):
-        label = class_names[y[sample_idx]] if class_names else f"Class {y[sample_idx]}"
-        ax1.errorbar(
-            noise_levels,
-            sample_means[sample_idx],
-            yerr=sample_stds[sample_idx] / np.sqrt(num_trials),
-            marker="o",
-            capsize=5,
-            capthick=1,
-            elinewidth=1,
-            label=label,
-            color=colors[y[sample_idx]],
-            alpha=0.5,
-        )
-    ax1.set_title("Individual Samples")
-
-    # Plot 2: Class-averaged
-    for class_idx in range(num_classes):
-        if class_counts[class_idx] == 0:
-            continue
-
-        label = class_names[class_idx] if class_names else f"Class {class_idx}"
-        label = f"{label} (n={class_counts[class_idx]})"
-
-        ax2.errorbar(
-            noise_levels,
-            class_means[class_idx],
-            yerr=class_sems[class_idx],
-            marker="o",
-            capsize=5,
-            capthick=1,
-            elinewidth=1,
-            label=label,
-            color=colors[class_idx],
-            linewidth=2,
-        )
-    ax2.set_title("Class Averages")
-    ax2.legend()
+    _plot_individual_samples(
+        ax1, noise_levels, results, y, num_samples, num_trials, class_names
+    )
+    class_stats = _plot_class_averages(
+        ax2, noise_levels, results, y, num_samples, num_trials, class_names
+    )
 
     for ax in (ax1, ax2):
         ax.set_xlabel("Input Noise Standard Deviation (σ)")
         ax.set_ylabel("Target Class Probability")
         ax.grid(True, alpha=0.3)
+
+    ax1.set_title("Individual Samples")
+    ax2.set_title("Class Averages")
+    ax2.legend()
+
     fig.suptitle(
         f"Flatness in Input Space - probability of class {target if target != -1 else 'ground truth'}"
     )
-
-    # Print summary statistics for class averages
-    if print_summary:
-        print("\nClass-Averaged Summary Statistics:")
-        for class_idx in range(num_classes):
-            if class_counts[class_idx] == 0:
-                continue
-            print(f"\nClass {class_idx} (n={class_counts[class_idx]}):")
-            print(f"{'Noise Level':^12} | {'Mean Prob':^12} | {'SEM':^12}")
-            print("-" * 40)
-            for noise, mean_p, sem_p in zip(
-                noise_levels, class_means[class_idx], class_sems[class_idx]
-            ):
-                print(f"{noise:^12.2f} | {mean_p:^12.4f} | {sem_p:^12.4f}")
-
     plt.tight_layout()
+
+    if print_summary:
+        _print_class_summary(noise_levels, class_stats)
+
     return fig
