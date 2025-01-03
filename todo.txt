@@ -1,5 +1,9 @@
 Next Steps:
 
+- integrate plot_average_input_flatness in plot_inputs_flatness in the module flatness.py
+- compare flatness around genuine examples and adversarial examples
+
+
 - Once HPC is back:
   - run explore gradients with finetuned resnet18 on tiny imagenet
   - different classifiers: adversarial examples shared?
