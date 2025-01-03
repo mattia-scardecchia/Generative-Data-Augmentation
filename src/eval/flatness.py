@@ -10,6 +10,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from src.utils import prepare_tensor_image_for_plot
+
 
 @torch.no_grad()
 def perturb_weights(
@@ -263,10 +265,13 @@ def _plot_individual_samples(
     y: torch.Tensor,
     num_samples: int,
     num_trials: int,
-    class_names: list = None,
-) -> None:
+    class_names: Optional[list] = None,
+):
     """Plot individual sample trajectories."""
-    colors = plt.cm.rainbow(np.linspace(0, 1, len(torch.unique(y))))
+    classes = [int(idx) for idx in torch.unique(y)]
+    colors = plt.cm.rainbow(np.linspace(0, 1, len(classes)))
+    color_idx_map = {class_idx: i for i, class_idx in enumerate(classes)}
+    print(color_idx_map)
     sample_means = torch.zeros(num_samples, len(noise_levels))
     sample_stds = torch.zeros(num_samples, len(noise_levels))
 
@@ -277,6 +282,7 @@ def _plot_individual_samples(
 
     for sample_idx in range(num_samples):
         label = class_names[y[sample_idx]] if class_names else f"Class {y[sample_idx]}"
+        color = colors[color_idx_map[int(y[sample_idx])]]
         ax.errorbar(
             noise_levels,
             sample_means[sample_idx].cpu(),
@@ -284,7 +290,7 @@ def _plot_individual_samples(
             marker="o",
             capsize=5,
             label=label,
-            color=colors[y[sample_idx]],
+            color=color,
             alpha=0.5,
         )
 
@@ -299,15 +305,15 @@ def _plot_class_averages(
     class_names: list = None,
 ) -> dict:
     """Plot class-averaged trajectories and return class statistics."""
-    num_classes = len(torch.unique(y))
+    classes = [int(idx) for idx in torch.unique(y)]
+    num_classes = len(classes)
     colors = plt.cm.rainbow(np.linspace(0, 1, num_classes))
-    class_stats = {i: {"means": [], "sems": [], "count": 0} for i in range(num_classes)}
+    color_idx_map = {class_idx: i for i, class_idx in enumerate(classes)}
+    class_stats = {idx: {"means": [], "sems": [], "count": 0} for idx in classes}
 
-    for class_idx in range(num_classes):
+    for class_idx in classes:
         class_mask = y[:num_samples] == class_idx
         class_stats[class_idx]["count"] = class_mask.sum().item()
-        if not torch.any(class_mask):
-            continue
 
         for noise in noise_levels:
             probs = results[noise]["target_probas"][:, class_mask]
@@ -317,6 +323,7 @@ def _plot_class_averages(
             class_stats[class_idx]["sems"].append(sem_prob)
 
         label = f"{class_names[class_idx] if class_names else f'Class {class_idx}'} (n={class_stats[class_idx]['count']})"
+        color = colors[color_idx_map[class_idx]]
         ax.errorbar(
             noise_levels,
             class_stats[class_idx]["means"],
@@ -324,7 +331,7 @@ def _plot_class_averages(
             marker="o",
             capsize=5,
             label=label,
-            color=colors[class_idx],
+            color=color,
             linewidth=2,
         )
 
@@ -462,5 +469,39 @@ def plot_average_input_flatness(
         title,
         y=1.05,
     )
+    plt.tight_layout()
+    return fig
+
+
+def visualize_input_noise(x: torch.Tensor, stddevs=None, figsize=(15, 15)):
+    """
+    Visualize effect of multiplicative Gaussian noise on batch of images.
+
+    Args:
+        x: numpy array or torch tensor of shape (batch_size, channels, height, width)
+        stddevs: list of noise standard deviations to try
+        figsize: tuple of figure dimensions
+    """
+    if stddevs is None:
+        stddevs = np.linspace(0.0, 1.0, 11)
+
+    batch_size = len(x)
+    fig, axes = plt.subplots(2 * batch_size, len(stddevs), figsize=figsize)
+
+    for i in range(batch_size):
+        for j, std in enumerate(stddevs):
+            noise = torch.randn_like(x[i]) * std
+            perturbed = x[i] * (1 + noise)
+            axes[2 * i, j].imshow(prepare_tensor_image_for_plot(perturbed))
+            axes[2 * i, j].axis("off")
+            if i == 0:
+                axes[2 * i, j].set_title(f"σ={std:.2f}")
+            diff = perturbed - x[i]
+            axes[2 * i + 1, j].imshow(prepare_tensor_image_for_plot(diff))
+            axes[2 * i + 1, j].axis("off")
+            axes[2 * i + 1, j].set_title(
+                f"M={diff.abs().max().item():.2f}d={diff.pow(2).mean().item():.2f}"
+            )
+    fig.suptitle("Effect of Multiplicative Gaussian Noise on Input Images", y=1.05)
     plt.tight_layout()
     return fig

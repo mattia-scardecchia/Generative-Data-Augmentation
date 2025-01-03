@@ -10,8 +10,6 @@ from tqdm import tqdm
 from src.eval.flatness import perturb_weights
 from src.utils import prepare_tensor_image_for_plot
 
-# TODO: test new functions and remove deprecated ones
-
 
 def compute_proba_grads_wrt_data(
     classifier: nn.Module,
@@ -373,7 +371,9 @@ def plot_optimization_trajectory_fixed_target(
             axes2[2 * i, j].set_title(title)
             diff = img[i] - trajectory[target][0][1][i]
             axes2[2 * i + 1, j].imshow(prepare_tensor_image_for_plot(diff))
-            axes2[2 * i + 1, j].set_title(f"M={diff.abs().max().item():.2f}")
+            axes2[2 * i + 1, j].set_title(
+                f"M={diff.abs().max().item():.2f}d={diff.pow(2).mean().item():.2f}"
+            )
     fig2.suptitle(f"Optimization trajectory for target class {class_names[target]}")
     fig2.tight_layout()
     return fig1, fig2
@@ -440,7 +440,9 @@ def plot_optimization_trajectory_fixed_sample(
             axes2[2 * i, j].set_title(title)
             diff = img[sample_idx] - trajectory[target][0][1][sample_idx]
             axes2[2 * i + 1, j].imshow(prepare_tensor_image_for_plot(diff))
-            axes2[2 * i + 1, j].set_title(f"M={diff.abs().max().item():.2f}")
+            axes2[2 * i + 1, j].set_title(
+                f"M={diff.abs().max().item():.2f}d={diff.pow(2).mean().item():.2f}"
+            )
     fig2.suptitle(f"Optimization trajectory for sample {sample_idx}")
     fig2.tight_layout()
     return fig1, fig2
@@ -473,7 +475,9 @@ def plot_optimal_images(
             axes[2 * i, j + 1].set_title(title)
             diff = opt[target][i] - data[i]
             axes[2 * i + 1, j + 1].imshow(prepare_tensor_image_for_plot(diff))
-            axes[2 * i + 1, j + 1].set_title(f"M={diff.abs().max().item():.2f}")
+            axes[2 * i + 1, j + 1].set_title(
+                f"M={diff.abs().max().item():.2f}d={diff.pow(2).mean().item():.2f}"
+            )
     fig.suptitle("Optimal images for target classes.")
     plt.tight_layout()
     return fig
