@@ -236,15 +236,12 @@ def compute_input_flatness(
     return dict(results)
 
 
-def _filter_misclassified(
-    results: dict, x: torch.Tensor, y: torch.Tensor
-) -> tuple[dict, torch.Tensor, torch.Tensor]:
+def _filter_misclassified(results: dict, y: torch.Tensor):
     """Filter out misclassified samples from results and data."""
     original_logits = results[min(results.keys())]["logits"][0]
     predictions = torch.argmax(original_logits, dim=1)
     correct_mask = predictions == y
 
-    filtered_x = x[correct_mask]
     filtered_y = y[correct_mask]
     filtered_results = {}
 
@@ -256,7 +253,7 @@ def _filter_misclassified(
             "logits": torch.stack([l[correct_mask] for l in results[noise]["logits"]]),
         }
 
-    return filtered_results, filtered_x, filtered_y
+    return filtered_results, filtered_y
 
 
 def _plot_individual_samples(
@@ -347,9 +344,8 @@ def _print_class_summary(noise_levels: list, class_stats: dict) -> None:
             print(f"{noise:^12.2f} | {mean_p:^12.4f} | {sem_p:^12.4f}")
 
 
-def plot_input_flatness(
+def plot_inputs_flatness(
     results: dict,
-    x: torch.Tensor,
     y: torch.Tensor,
     target: int = -1,
     num_samples: Optional[int] = None,
@@ -362,9 +358,9 @@ def plot_input_flatness(
     change with different noise levels. The first subplot shows individual samples,
     while the second subplot shows averages grouped by class."""
     if filter_misclassified:
-        results, x, y = _filter_misclassified(results, x, y)
+        results, y = _filter_misclassified(results, y)
 
-    batch_size = x.size(0)
+    batch_size = len(y)
     num_samples = min(num_samples or batch_size, batch_size)
     num_trials = len(list(results.values())[0]["target_probas"])
     noise_levels = sorted([float(k) for k in results.keys()])
@@ -392,12 +388,79 @@ def plot_input_flatness(
     ax2.set_title("Class Averages")
     ax2.legend()
 
+    title = "Flatness in Input Space - probability of"
+    if target == -1:
+        title += " ground truth class."
+    else:
+        title += f" class {class_names[target] if class_names else target}."
+    if filter_misclassified:
+        title += " (Misclassified samples removed)"
+
     fig.suptitle(
-        f"Flatness in Input Space - probability of class {target if target != -1 else 'ground truth'}"
+        title,
+        y=1.05,
     )
     plt.tight_layout()
 
     if print_summary:
         _print_class_summary(noise_levels, class_stats)
 
+    return fig
+
+
+def plot_average_input_flatness(
+    results: dict,
+    y: torch.Tensor,
+    target: int = -1,
+    figsize: tuple[int, int] = (15, 8),
+    filter_misclassified: bool = False,
+    class_names: Optional[list[str]] = None,
+) -> None:
+    """Plot the results from compute_input_local_energy showing how model predictions
+    change with different noise levels. This plot shows the average probability of the target
+    class across all samples."""
+    if filter_misclassified:
+        results, _ = _filter_misclassified(results, y)
+
+    noise_levels = sorted([float(k) for k in results.keys()])
+    means = torch.zeros(len(noise_levels))
+    stds = torch.zeros(len(noise_levels))
+
+    for i, noise in enumerate(noise_levels):
+        if target != -1:
+            logits = torch.stack(results[noise]["logits"])
+            probs = torch.softmax(logits, dim=2)[:, :, target]
+        else:
+            probs = results[noise]["target_probas"]
+
+        means[i] = probs.mean()
+        stds[i] = probs.std() / (probs.numel() ** 0.5)
+
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.errorbar(
+        noise_levels,
+        means.cpu(),
+        yerr=stds.cpu(),
+        marker="o",
+        capsize=5,
+        color="blue",
+        linewidth=2,
+    )
+
+    ax.set_xlabel("Input Noise Standard Deviation (σ)")
+    ax.set_ylabel("Target Class Probability")
+    ax.grid(True, alpha=0.3)
+
+    title = "Average Flatness in Input Space - probability of"
+    if target == -1:
+        title += " ground truth class."
+    else:
+        title += f" class {class_names[target] if class_names else target}."
+    if filter_misclassified:
+        title += " (Misclassified samples removed)"
+    ax.set_title(
+        title,
+        y=1.05,
+    )
+    plt.tight_layout()
     return fig
