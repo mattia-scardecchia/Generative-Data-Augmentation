@@ -6,7 +6,7 @@ import torch
 from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 
-from src.input_gradients import (
+from src.eval.input_gradients import (
     compute_proba_grads_wrt_data,
     optimize_proba_wrt_data,
     plot_grads_wrt_data,
