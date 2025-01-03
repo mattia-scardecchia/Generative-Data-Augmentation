@@ -1,7 +1,10 @@
 Next Steps:
 
-- refactor input gradients module
-
+- Once HPC is back:
+  - run explore gradients with finetuned resnet18 on tiny imagenet
+  - different classifiers: adversarial examples shared?
+- input landscape (noise in optimization, flatness, mode connectivity, ...)
+  - compute input flatness for a few examples (genuine images, adversarial images, changing the optimization recipe (e.g. SGD, noise), etc)
 
 
 Suspended for now...
@@ -19,6 +22,8 @@ Suspended for now...
 
 More:
 
+- improve consistency of conventions (e.g. paths handling, docstrings, tensor manipulations, ...)
+- refactor flatness code (make modular?)
 - when optimizing proba constrained on the AE manifold, inject noise in classifier?
   - similar to SGD noise in analogy with weight landscape (face a noisy sample from data distro at every iteration,
     here e.g. face a classifier from a ball around a reference one)
