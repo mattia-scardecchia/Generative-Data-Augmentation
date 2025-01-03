@@ -1,10 +1,13 @@
+import copy
 from collections import defaultdict
 from typing import Optional
 
 import torch
 from matplotlib import pyplot as plt
 from torch import nn
+from tqdm import tqdm
 
+from src.eval.flatness import perturb_weights
 from src.utils import prepare_tensor_image_for_plot
 
 # TODO: test new functions and remove deprecated ones
@@ -216,12 +219,19 @@ def _optimize_proba_wrt_data_no_autoencoder(
         defaultdict(list),
     )
     final_imgs = {}
+    if config["perturb_weights"]:
+        reference_state = copy.deepcopy(classifier.state_dict())
     for target in targets:
         x = data.clone()
         x.requires_grad = True
         optimizer = config["optimizer_cls"]([x], **config["optimizer_kwargs"])
         trajectories[target].append((0, x.cpu().detach().clone()))
-        for step in range(config["num_steps"]):
+        for step in tqdm(
+            range(config["num_steps"]), desc=f"Optimizing target {target}"
+        ):
+            if config["perturb_weights"] and step % config["weights_sample_freq"] == 0:
+                classifier.load_state_dict(reference_state)
+                perturb_weights(classifier, config["stddev"])
             optimizer.zero_grad()
             logits = classifier(x)
             probas = config["logit_transform"](logits)[:, target]
@@ -238,6 +248,8 @@ def _optimize_proba_wrt_data_no_autoencoder(
         final_imgs[target] = x.cpu().detach().clone()
     objectives = {idx: torch.stack(objs, dim=0) for idx, objs in objectives.items()}
     grad_norms = {idx: torch.stack(grads, dim=0) for idx, grads in grad_norms.items()}
+    if config["perturb_weights"]:
+        classifier.load_state_dict(reference_state)
     return trajectories, objectives, grad_norms, final_imgs
 
 
@@ -255,6 +267,8 @@ def _optimize_proba_wrt_data_with_autoencoder(
         defaultdict(list),
     )
     final_imgs, final_latents = {}, {}
+    if config["perturb_weights"]:
+        reference_state = copy.deepcopy(classifier.state_dict())
     with torch.no_grad():
         latent = autoencoder.encode(data)
     for target in targets:
@@ -263,7 +277,12 @@ def _optimize_proba_wrt_data_with_autoencoder(
         optimizer = config["optimizer_cls"]([z], **config["optimizer_kwargs"])
         trajectories[target].append((0, data.cpu().detach().clone()))
         latent_trajectories[target].append((0, z.cpu().detach().clone()))
-        for step in range(config["num_steps"]):
+        for step in tqdm(
+            range(config["num_steps"]), desc=f"Optimizing target {target}"
+        ):
+            if config["perturb_weights"] and step % config["weights_sample_freq"] == 0:
+                classifier.load_state_dict(reference_state)
+                perturb_weights(classifier, config["stddev"])
             optimizer.zero_grad()
             x = autoencoder.decode(z)
             logits = classifier(x)
@@ -282,6 +301,8 @@ def _optimize_proba_wrt_data_with_autoencoder(
         final_latents[target] = z.cpu().detach().clone()
     objectives = {idx: torch.stack(objs, dim=0) for idx, objs in objectives.items()}
     grad_norms = {idx: torch.stack(grads, dim=0) for idx, grads in grad_norms.items()}
+    if config["perturb_weights"]:
+        classifier.load_state_dict(reference_state)
     return (
         trajectories,
         objectives,
