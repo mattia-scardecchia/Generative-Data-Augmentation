@@ -1,7 +1,10 @@
+import math
 import random
+from typing import Optional
 
 import numpy as np
 import torch
+from matplotlib import pyplot as plt
 from omegaconf import OmegaConf
 
 from src.dataset.factory import get_datamodule
@@ -89,3 +92,38 @@ def get_mean_and_std(dataset: str, metadata_path: str = "src/dataset/metadata.ya
     if dataset not in metadata:
         raise ValueError(f"Dataset {dataset} not found in metadata.")
     return metadata[dataset].mean, metadata[dataset].std
+
+
+def plot_image_grid(
+    images: torch.Tensor,
+    labels: torch.Tensor,
+    class_names: Optional[list[str]] = None,
+    figsize=(15, 15),
+):
+    """
+    Plot a grid of images with their labels from batched tensors.
+
+    Args:
+        images: Tensor of shape (B, C, H, W) where B is batch size
+        labels: Tensor of shape (B,) containing class indices
+        class_names: optional list of class names to use instead of indices
+    """
+    if images.shape[0] != labels.shape[0]:
+        raise ValueError("Batch sizes of images and labels must match")
+
+    n_images = images.shape[0]
+    grid_size = math.ceil(math.sqrt(n_images))
+
+    fig, axes = plt.subplots(grid_size, grid_size, figsize=figsize, squeeze=False)
+    axes = axes.flatten()
+
+    for idx in range(len(axes)):
+        if idx < n_images:
+            label = labels[idx].item()
+            axes[idx].imshow(prepare_tensor_image_for_plot(images[idx]))
+            label_text = class_names[label] if class_names is not None else str(label)
+            axes[idx].set_title(f"{label_text}")
+        axes[idx].axis("off")
+
+    plt.tight_layout()
+    return fig

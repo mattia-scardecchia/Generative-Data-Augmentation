@@ -10,6 +10,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from src.utils import prepare_tensor_image_for_plot
+
 
 @torch.no_grad()
 def perturb_weights(
@@ -409,7 +411,7 @@ def plot_inputs_flatness(
     filter_misclassified: bool = False,
     plot_individual_samples: bool = False,
     plot_global_average: bool = False,
-    print_summary: bool = True,
+    print_summary: bool = False,
 ):
     """Plot the results from compute_input_local_energy showing how model predictions
     change with different noise levels. The first subplot shows individual samples,
@@ -420,7 +422,7 @@ def plot_inputs_flatness(
         results, y = _filter_misclassified(results, y)
     for noise in results:
         if target != -1:
-            logits = torch.stack(results[noise]["logits"])
+            logits = results[noise]["logits"]
             results[noise]["probas_for_plotting"] = torch.softmax(logits, dim=2)[
                 :, :, target
             ]
@@ -467,3 +469,37 @@ def plot_inputs_flatness(
         noise_levels = sorted([float(k) for k in results.keys()])
         _print_class_summary(noise_levels, class_stats)
     return fig1, fig2, fig3
+
+
+def visualize_input_noise(x: torch.Tensor, stddevs=None, figsize=(15, 15)):
+    """
+    Visualize effect of multiplicative Gaussian noise on batch of images.
+
+    Args:
+        x: numpy array or torch tensor of shape (batch_size, channels, height, width)
+        stddevs: list of noise standard deviations to try
+        figsize: tuple of figure dimensions
+    """
+    if stddevs is None:
+        stddevs = np.linspace(0.0, 1.0, 11)
+
+    batch_size = len(x)
+    fig, axes = plt.subplots(2 * batch_size, len(stddevs), figsize=figsize)
+
+    for i in range(batch_size):
+        for j, std in enumerate(stddevs):
+            noise = torch.randn_like(x[i]) * std
+            perturbed = x[i] * (1 + noise)
+            axes[2 * i, j].imshow(prepare_tensor_image_for_plot(perturbed))
+            axes[2 * i, j].axis("off")
+            if i == 0:
+                axes[2 * i, j].set_title(f"σ={std:.2f}")
+            diff = perturbed - x[i]
+            axes[2 * i + 1, j].imshow(prepare_tensor_image_for_plot(diff))
+            axes[2 * i + 1, j].axis("off")
+            axes[2 * i + 1, j].set_title(
+                f"M={diff.abs().max().item():.2f}d={diff.pow(2).mean().item():.2f}"
+            )
+    fig.suptitle("Effect of Multiplicative Gaussian Noise on Input Images", y=1.05)
+    plt.tight_layout()
+    return fig

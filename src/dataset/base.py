@@ -159,7 +159,7 @@ class BaseDataModule(pl.LightningDataModule, ABC):
         dl = DataLoader(
             self.val_dataset,
             batch_size=self.config["data"]["batch_size"],
-            shuffle=False,
+            shuffle=True,
             num_workers=self.config["data"]["num_workers"],
             persistent_workers=self.persistent_workers,
         )
@@ -170,7 +170,7 @@ class BaseDataModule(pl.LightningDataModule, ABC):
         dl = DataLoader(
             self.test_dataset,
             batch_size=self.config["data"]["batch_size"],
-            shuffle=False,
+            shuffle=True,
             num_workers=self.config["data"]["num_workers"],
             persistent_workers=self.persistent_workers,
         )

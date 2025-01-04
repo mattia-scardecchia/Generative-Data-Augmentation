@@ -130,8 +130,6 @@ def plot_image_grid(
             pred_text = (
                 class_names[pred_label] if class_names is not None else str(pred_label)
             )
-
-            # Display image
             axes[idx].imshow(prepare_tensor_image_for_plot(img))
 
             title = f"GT: {true_text} (p = {true_prob:.2f})\nPred: {pred_text} (p = {pred_prob:.2f})"
