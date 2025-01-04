@@ -305,6 +305,7 @@ def _plot_individual_samples(
     ax.set_title("Individual Samples")
     ax.set_xlabel("Input Noise Standard Deviation (σ)")
     ax.set_ylabel("Target Class Probability")
+    ax.set_xticks(noise_levels)
     ax.grid(True, alpha=0.3)
     ax.legend()
     return fig
@@ -352,6 +353,7 @@ def _plot_class_averages(
     ax.set_title("Class Averages")
     ax.set_xlabel("Input Noise Standard Deviation (σ)")
     ax.set_ylabel("Target Class Probability")
+    ax.set_xticks(noise_levels)
     ax.grid(True, alpha=0.3)
     ax.legend()
     return fig, class_stats
@@ -362,7 +364,7 @@ def _plot_average_input_flatness(
     y: torch.Tensor,
     class_names: Optional[list[str]] = None,
     figsize: tuple[int, int] = (15, 8),
-) -> None:
+):
     noise_levels = sorted([float(k) for k in results.keys()])
     means = torch.zeros(len(noise_levels))
     stds = torch.zeros(len(noise_levels))
@@ -386,7 +388,9 @@ def _plot_average_input_flatness(
     ax.set_xlabel("Input Noise Standard Deviation (σ)")
     ax.set_ylabel("Target Class Probability")
     ax.grid(True, alpha=0.3)
-    return fig
+    ax.set_xticks(noise_levels)
+    ax.set_title("Global Average")
+    return fig, means, stds
 
 
 def _print_class_summary(noise_levels: list, class_stats: dict) -> None:
@@ -429,7 +433,7 @@ def plot_inputs_flatness(
         else:
             results[noise]["probas_for_plotting"] = results[noise]["target_probas"]
 
-    fig1, fig2, fig3 = None, None, None
+    fig1, fig2, fig3, means, stds = None, None, None, None, None
     if plot_individual_samples:
         fig1 = _plot_individual_samples(
             results,
@@ -444,7 +448,7 @@ def plot_inputs_flatness(
         figsize,
     )
     if plot_global_average:
-        fig3 = _plot_average_input_flatness(
+        fig3, means, stds = _plot_average_input_flatness(
             results,
             y,
             class_names,
@@ -468,7 +472,7 @@ def plot_inputs_flatness(
     if print_summary:
         noise_levels = sorted([float(k) for k in results.keys()])
         _print_class_summary(noise_levels, class_stats)
-    return fig1, fig2, fig3
+    return fig1, fig2, fig3, means, stds
 
 
 def visualize_input_noise(x: torch.Tensor, stddevs=None, figsize=(15, 15)):

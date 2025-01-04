@@ -1,7 +1,6 @@
 Next Steps:
 
-- integrate plot_average_input_flatness in plot_inputs_flatness in the module flatness.py
-- compare flatness around genuine examples and adversarial examples
+- put comparison of flatness around genuine examples and adversarial examples in a script
 
 
 - Once HPC is back:
