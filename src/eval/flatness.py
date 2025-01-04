@@ -10,8 +10,6 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.utils import prepare_tensor_image_for_plot
-
 
 @torch.no_grad()
 def perturb_weights(
@@ -266,15 +264,17 @@ def _filter_misclassified(results: dict, ground_truth: torch.Tensor):
 
 
 def _plot_individual_samples(
-    noise_levels: list,
     results: dict,
     y: torch.Tensor,
-    num_samples: int,
-    num_trials: int,
     class_names: Optional[list] = None,
     figsize: tuple[int, int] = (15, 8),
+    num_samples: Optional[int] = None,
 ):
     """Plot individual sample trajectories."""
+    noise_levels = sorted([float(k) for k in results.keys()])
+    num_trials = next(iter(results.values()))["probas_for_plotting"].shape[0]
+    if num_samples is None:
+        num_samples = len(y)
     fig, ax = plt.subplots(figsize=figsize)
     classes = [int(idx) for idx in torch.unique(y)]
     colors = plt.cm.rainbow(np.linspace(0, 1, len(classes)))
@@ -309,15 +309,13 @@ def _plot_individual_samples(
 
 
 def _plot_class_averages(
-    noise_levels: list,
     results: dict,
     y: torch.Tensor,
-    num_samples: int,
-    num_trials: int,
     class_names: Optional[list] = None,
     figsize: tuple[int, int] = (15, 8),
-) -> dict:
+):
     """Plot class-averaged trajectories and return class statistics."""
+    noise_levels = sorted([float(k) for k in results.keys()])
     fig, ax = plt.subplots(figsize=figsize)
     classes = [int(idx) for idx in torch.unique(y)]
     num_classes = len(classes)
@@ -326,7 +324,7 @@ def _plot_class_averages(
     class_stats = {idx: {"means": [], "sems": [], "count": 0} for idx in classes}
 
     for class_idx in classes:
-        class_mask = y[:num_samples] == class_idx
+        class_mask = y == class_idx
         class_stats[class_idx]["count"] = class_mask.sum().item()
 
         for noise in noise_levels:
@@ -357,120 +355,18 @@ def _plot_class_averages(
     return fig, class_stats
 
 
-def _print_class_summary(noise_levels: list, class_stats: dict) -> None:
-    """Print summary statistics for each class."""
-    print("\nClass-Averaged Summary Statistics:")
-    for class_idx, stats in class_stats.items():
-        if stats["count"] == 0:
-            continue
-        print(f"\nClass {class_idx} (n={stats['count']}):")
-        print(f"{'Noise Level':^12} | {'Mean Prob':^12} | {'SEM':^12}")
-        print("-" * 40)
-        for noise, mean_p, sem_p in zip(noise_levels, stats["means"], stats["sems"]):
-            print(f"{noise:^12.2f} | {mean_p:^12.4f} | {sem_p:^12.4f}")
-
-
-def plot_inputs_flatness(
+def _plot_average_input_flatness(
     results: dict,
     y: torch.Tensor,
-    target: int = -1,
-    num_samples: Optional[int] = None,
-    figsize: tuple[int, int] = (12, 5),
     class_names: Optional[list[str]] = None,
-    filter_misclassified: bool = False,
-    plot_individual_samples: bool = True,
-    print_summary: bool = True,
-):
-    """Plot the results from compute_input_local_energy showing how model predictions
-    change with different noise levels. The first subplot shows individual samples,
-    while the second subplot shows averages grouped by class.
-    :param results: Dictionary output from compute_input_local_energy
-    :param y: Ground truth labels output from compute_input_local_energy"""
-    if filter_misclassified:
-        results, y = _filter_misclassified(results, y)
-    batch_size = len(y)
-    num_samples = min(num_samples or batch_size, batch_size)
-    num_trials = len(list(results.values())[0]["target_probas"])
-    noise_levels = sorted([float(k) for k in results.keys()])
-
-    for noise in results:
-        if target != -1:
-            logits = torch.stack(results[noise]["logits"])
-            results[noise]["probas_for_plotting"] = torch.softmax(logits, dim=2)[
-                :, :, target
-            ]
-        else:
-            results[noise]["probas_for_plotting"] = results[noise]["target_probas"]
-
-    if plot_individual_samples:
-        fig1 = _plot_individual_samples(
-            noise_levels,
-            results,
-            y,
-            num_samples,
-            num_trials,
-            class_names,
-            figsize,
-        )
-    else:
-        fig1 = None
-
-    fig2, class_stats = _plot_class_averages(
-        noise_levels,
-        results,
-        y,
-        num_samples,
-        num_trials,
-        class_names,
-        figsize,
-    )
-
-    title = "Flatness in Input Space - probability of"
-    if target == -1:
-        title += " ground truth class."
-    else:
-        title += f" class {class_names[target] if class_names else target}."
-    if filter_misclassified:
-        title += " (Misclassified samples removed)"
-
-    for fig in [f for f in (fig1, fig2) if f is not None]:
-        fig.suptitle(
-            title,
-            y=1.05,
-        )
-        fig.tight_layout()
-
-    if print_summary:
-        _print_class_summary(noise_levels, class_stats)
-
-    return fig1, fig2
-
-
-def plot_average_input_flatness(
-    results: dict,
-    y: torch.Tensor,
-    target: int = -1,
     figsize: tuple[int, int] = (15, 8),
-    filter_misclassified: bool = False,
-    class_names: Optional[list[str]] = None,
 ) -> None:
-    """Plot the results from compute_input_local_energy showing how model predictions
-    change with different noise levels. This plot shows the average probability of the target
-    class across all samples."""
-    if filter_misclassified:
-        results, _ = _filter_misclassified(results, y)
-
     noise_levels = sorted([float(k) for k in results.keys()])
     means = torch.zeros(len(noise_levels))
     stds = torch.zeros(len(noise_levels))
 
     for i, noise in enumerate(noise_levels):
-        if target != -1:
-            logits = torch.stack(results[noise]["logits"])
-            probs = torch.softmax(logits, dim=2)[:, :, target]
-        else:
-            probs = results[noise]["target_probas"]
-
+        probs = results[noise]["probas_for_plotting"]
         means[i] = probs.mean()
         stds[i] = probs.std() / (probs.numel() ** 0.5)
 
@@ -488,51 +384,86 @@ def plot_average_input_flatness(
     ax.set_xlabel("Input Noise Standard Deviation (σ)")
     ax.set_ylabel("Target Class Probability")
     ax.grid(True, alpha=0.3)
+    return fig
 
-    title = "Average Flatness in Input Space - probability of"
+
+def _print_class_summary(noise_levels: list, class_stats: dict) -> None:
+    """Print summary statistics for each class."""
+    print("\nClass-Averaged Summary Statistics:")
+    for class_idx, stats in class_stats.items():
+        if stats["count"] == 0:
+            continue
+        print(f"\nClass {class_idx} (n={stats['count']}):")
+        print(f"{'Noise Level':^12} | {'Mean Prob':^12} | {'SEM':^12}")
+        print("-" * 40)
+        for noise, mean_p, sem_p in zip(noise_levels, stats["means"], stats["sems"]):
+            print(f"{noise:^12.2f} | {mean_p:^12.4f} | {sem_p:^12.4f}")
+
+
+def plot_inputs_flatness(
+    results: dict,
+    y: torch.Tensor,
+    target: int = -1,
+    figsize: tuple[int, int] = (12, 5),
+    class_names: Optional[list[str]] = None,
+    filter_misclassified: bool = False,
+    plot_individual_samples: bool = False,
+    plot_global_average: bool = False,
+    print_summary: bool = True,
+):
+    """Plot the results from compute_input_local_energy showing how model predictions
+    change with different noise levels. The first subplot shows individual samples,
+    while the second subplot shows averages grouped by class.
+    :param results: Dictionary output from compute_input_local_energy
+    :param y: Ground truth labels output from compute_input_local_energy"""
+    if filter_misclassified:
+        results, y = _filter_misclassified(results, y)
+    for noise in results:
+        if target != -1:
+            logits = torch.stack(results[noise]["logits"])
+            results[noise]["probas_for_plotting"] = torch.softmax(logits, dim=2)[
+                :, :, target
+            ]
+        else:
+            results[noise]["probas_for_plotting"] = results[noise]["target_probas"]
+
+    fig1, fig2, fig3 = None, None, None
+    if plot_individual_samples:
+        fig1 = _plot_individual_samples(
+            results,
+            y,
+            class_names,
+            figsize,
+        )
+    fig2, class_stats = _plot_class_averages(
+        results,
+        y,
+        class_names,
+        figsize,
+    )
+    if plot_global_average:
+        fig3 = _plot_average_input_flatness(
+            results,
+            y,
+            class_names,
+            figsize,
+        )
+
+    title = "Flatness in Input Space - probability of"
     if target == -1:
         title += " ground truth class."
     else:
         title += f" class {class_names[target] if class_names else target}."
     if filter_misclassified:
         title += " (Misclassified samples removed)"
-    ax.set_title(
-        title,
-        y=1.05,
-    )
-    plt.tight_layout()
-    return fig
+    for fig in [f for f in (fig1, fig2, fig3) if f is not None]:
+        fig.suptitle(
+            title,
+            y=1.05,
+        )
+        fig.tight_layout()
 
-
-def visualize_input_noise(x: torch.Tensor, stddevs=None, figsize=(15, 15)):
-    """
-    Visualize effect of multiplicative Gaussian noise on batch of images.
-
-    Args:
-        x: numpy array or torch tensor of shape (batch_size, channels, height, width)
-        stddevs: list of noise standard deviations to try
-        figsize: tuple of figure dimensions
-    """
-    if stddevs is None:
-        stddevs = np.linspace(0.0, 1.0, 11)
-
-    batch_size = len(x)
-    fig, axes = plt.subplots(2 * batch_size, len(stddevs), figsize=figsize)
-
-    for i in range(batch_size):
-        for j, std in enumerate(stddevs):
-            noise = torch.randn_like(x[i]) * std
-            perturbed = x[i] * (1 + noise)
-            axes[2 * i, j].imshow(prepare_tensor_image_for_plot(perturbed))
-            axes[2 * i, j].axis("off")
-            if i == 0:
-                axes[2 * i, j].set_title(f"σ={std:.2f}")
-            diff = perturbed - x[i]
-            axes[2 * i + 1, j].imshow(prepare_tensor_image_for_plot(diff))
-            axes[2 * i + 1, j].axis("off")
-            axes[2 * i + 1, j].set_title(
-                f"M={diff.abs().max().item():.2f}d={diff.pow(2).mean().item():.2f}"
-            )
-    fig.suptitle("Effect of Multiplicative Gaussian Noise on Input Images", y=1.05)
-    plt.tight_layout()
-    return fig
+    if print_summary:
+        noise_levels = sorted([float(k) for k in results.keys()])
+        _print_class_summary(noise_levels, class_stats)
+    return fig1, fig2, fig3
