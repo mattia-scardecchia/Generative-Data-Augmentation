@@ -9,8 +9,8 @@ seed: 100
 device: "mps"
 
 save_tensors: true
-do_noae: True
-do_ae: True
+do_noae: true
+do_ae: false
 
 targets: null  # null or list[int]
 fixed_target: 4
@@ -24,9 +24,20 @@ num_steps:
 weight_decay: 0.0001
 optimizer: AdamW
 save_k_intermediate_imgs: 10
+noise:
+  perturb_weights: false
+  stddev: 0.1
 
 batch_size: 4
 target_class: 9
 
 dpi: 500
 figsize: [30, 15]
+
+# save outputs in classifier directory
+hydra:
+  run:
+    dir: ${classifier_hydra_path}/input_gradients/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: ${classifier_hydra_path}/input_gradients/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: cfg:${hydra.job.override_dirname}/seed=${seed}

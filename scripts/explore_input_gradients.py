@@ -28,9 +28,10 @@ from src.utils import (
 def main(cfg):
     hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
     base_save_dir = os.path.join(hydra_cfg["runtime"]["output_dir"], "input_grads")
+    # base_save_dir = os.path.join(cfg["classifier_hydra_path"], "input_grads")
     os.makedirs(base_save_dir, exist_ok=True)
 
-    classifier, datamodule, config = load_from_hydra_logs(
+    classifier, datamodule, classifier_config = load_from_hydra_logs(
         cfg["classifier_hydra_path"], ImageClassifier
     )
     classifier = classifier.to(cfg["device"])
@@ -48,7 +49,7 @@ def main(cfg):
     logging.info(str(classifier))
     logging.info(f"Len of Dataloader: {len(dataloader)}")
     x, y = next(iter(dataloader))
-    class_names = get_class_names(config["dataset"])
+    class_names = get_class_names(classifier_config["dataset"])
     logging.info(f"class names: {class_names}")
 
     targets = (
@@ -84,6 +85,8 @@ def main(cfg):
                 "lr": cfg["lr"]["no_ae"],
                 "weight_decay": cfg["weight_decay"],
             },
+            "perturb_weights": cfg["noise"]["perturb_weights"],
+            "stddev": cfg["noise"]["stddev"],
         }
         out = optimize_proba_wrt_data(
             classifier,
@@ -153,7 +156,7 @@ def main(cfg):
         if cfg["autoencoder_hydra_path"] is None:
             logging.error("Autoencoder hydra path is required when do_ae is True")
             return
-        autoencoder, _, config = load_from_hydra_logs(
+        autoencoder, _, _ = load_from_hydra_logs(
             cfg["autoencoder_hydra_path"], Autoencoder
         )
         autoencoder = autoencoder.to(cfg["device"])
@@ -194,6 +197,8 @@ def main(cfg):
                 "lr": cfg["lr"]["ae"],
                 "weight_decay": cfg["weight_decay"],
             },
+            "perturb_weights": cfg["noise"]["perturb_weights"],
+            "stddev": cfg["noise"]["stddev"],
         }
         out = optimize_proba_wrt_data(
             classifier,
