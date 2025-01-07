@@ -3,7 +3,7 @@ wandb
 slurm_logs
 
 # datasets
-data
+/data
 
 # python
 __pycache__
