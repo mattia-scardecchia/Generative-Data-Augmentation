@@ -1,13 +1,11 @@
 Next Steps:
 
 - put comparison of flatness around genuine examples and adversarial examples in a script
-
-
-- Once HPC is back:
-  - run explore gradients with finetuned resnet18 on tiny imagenet
-  - different classifiers: adversarial examples shared?
-- input landscape (noise in optimization, flatness, mode connectivity, ...)
-  - compute input flatness for a few examples (genuine images, adversarial images, changing the optimization recipe (e.g. SGD, noise), etc)
+- run exploration of latent space, input gradients, and genuine vs adversarial for tiny imagenet
+- what can we do with multiple clasifier seeds? 
+  - are adversarial examples shared?
+  - can we find shared adversarial examples?
+  - can we guide the search in input space with many classifiers?
 
 
 Suspended for now...
@@ -43,3 +41,4 @@ More:
 - to understand hidden layer perturbations (of any kind, including through a perturbation in the latent space on an AE),
   setup the following: given a dataset and a classifier, collect all hidden representations at that level of the datapoints.
   then, do nearest neighbor queries to interpret the 'moves' in hidden representation space.
+- input landscape (noise in optimization, flatness, mode connectivity, ...)
