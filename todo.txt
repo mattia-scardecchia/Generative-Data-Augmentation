@@ -6,6 +6,9 @@ Next Steps:
   - are adversarial examples shared?
   - can we find shared adversarial examples?
   - can we guide the search in input space with many classifiers?
+- train a better autoencoder!
+  - variational?
+  - more constrained bottleneck?
 
 
 Suspended for now...
