@@ -67,6 +67,8 @@ class TinyImageNetDataModule(BaseDataModule):
             os.chdir(curr_wdir)
 
     def get_dataset(self, split: str, transform):
+        if split == "test":
+            logging.warning("No labels are available for the test split... Do not use!")
         return ImageFolder(
             os.path.join(self.config["data_dir"], "tiny-imagenet-200", split), transform
         )
