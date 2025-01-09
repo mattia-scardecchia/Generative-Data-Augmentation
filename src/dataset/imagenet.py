@@ -68,7 +68,10 @@ class TinyImageNetDataModule(BaseDataModule):
 
     def get_dataset(self, split: str, transform):
         if split == "test":
-            logging.warning("No labels are available for the test split... Do not use!")
+            logging.warning(
+                "No labels are available for the test split... Loading val dataset instead!"
+            )
+            split = "val"  # this makes sense cause augmentations are handled differently for val and test
         return ImageFolder(
             os.path.join(self.config["data_dir"], "tiny-imagenet-200", split), transform
         )
