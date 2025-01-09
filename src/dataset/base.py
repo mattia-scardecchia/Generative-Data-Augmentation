@@ -155,22 +155,22 @@ class BaseDataModule(pl.LightningDataModule, ABC):
         logging.info(f"Train dataloader: {len(dl)} batches of size {dl.batch_size}")
         return dl
 
-    def val_dataloader(self):
+    def val_dataloader(self, shuffle=False):
         dl = DataLoader(
             self.val_dataset,
             batch_size=self.config["data"]["batch_size"],
-            shuffle=True,
+            shuffle=shuffle,
             num_workers=self.config["data"]["num_workers"],
             persistent_workers=self.persistent_workers,
         )
         logging.info(f"Val dataloader: {len(dl)} batches of size {dl.batch_size}")
         return dl
 
-    def test_dataloader(self):
+    def test_dataloader(self, shuffle=False):
         dl = DataLoader(
             self.test_dataset,
             batch_size=self.config["data"]["batch_size"],
-            shuffle=True,
+            shuffle=shuffle,
             num_workers=self.config["data"]["num_workers"],
             persistent_workers=self.persistent_workers,
         )
