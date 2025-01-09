@@ -20,8 +20,25 @@ dataset: "tiny_imagenet"
 model:
   architecture: "resnet18"
   config:
-    pretrained: true
+    pretrained: false
+    freeze_backbone: false
 
 training:
-  label_smoothing: 0.05
-  epochs: 1
+  label_smoothing: 0.01
+  epochs: 100
+  weight_decay: 0.01
+
+data:
+  batch_size: 256
+  transforms:
+    train:
+      RandomHorizontalFlip:
+        p: 0.5
+      RandomRotation:
+        degrees: 10
+      RandomCrop:
+        size: 48
+      ColorJitter:
+        brightness: 0.1
+        contrast: 0.1
+        saturation: 0.1

@@ -15,7 +15,9 @@ data:
       RandomRotation:
         degrees: 0
       RandomCrop: null
+      ColorJitter: null
     test:
       RandomHorizontalFlip: null
       RandomRotation: null
       RandomCrop: null
+      ColorJitter: null
