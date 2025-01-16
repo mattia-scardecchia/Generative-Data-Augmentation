@@ -3,10 +3,13 @@ defaults:
   - base_training
   - _self_
 
+# =====================
+dataset: "tiny_imagenet"
 name: "prova"
 experiment_type: "train_classifier"
 device: "cuda"
 seed: 100
+# =====================
 
 dataset: "tiny_imagenet"
 

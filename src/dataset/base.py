@@ -31,7 +31,7 @@ class BaseDataModule(pl.LightningDataModule, ABC):
         self.width = None
         self.class_names = None
 
-        self.persistent_workers = self.config.get("persistent_workers", False)
+        self.persistent_workers = self.config["data"].get("persistent_workers", False)
 
     def set_metadata(self, dataset_name: str, metadata=None):
         """
@@ -83,22 +83,30 @@ class BaseDataModule(pl.LightningDataModule, ABC):
 
         if stage == "fit" or stage is None:
             full_train_dataset = self.get_dataset("train", self.train_transform)
-            full_train_dataset = self.filter_dataset(
-                full_train_dataset,
-                num_classes=self.config["num_classes"],
-                samples_per_class=self.config["data"]["samples_per_class"],
-            )
+            if (
+                self.config["num_classes"] != -1
+                or self.config["data"]["samples_per_class"] != -1
+            ):
+                full_train_dataset = self.filter_dataset(
+                    full_train_dataset,
+                    num_classes=self.config["num_classes"],
+                    samples_per_class=self.config["data"]["samples_per_class"],
+                )
             self.train_dataset, self.val_dataset = self.create_train_val_split(
                 full_train_dataset
             )
 
         if stage == "test" or stage is None:
             self.test_dataset = self.get_dataset("test", self.test_transform)
-            self.test_dataset = self.filter_dataset(
-                self.test_dataset,
-                num_classes=self.config["num_classes"],
-                samples_per_class=self.config["data"]["samples_per_class"],
-            )
+            if (
+                self.config["num_classes"] != -1
+                or self.config["data"]["samples_per_class"] != -1
+            ):
+                self.test_dataset = self.filter_dataset(
+                    self.test_dataset,
+                    num_classes=self.config["num_classes"],
+                    samples_per_class=self.config["data"]["samples_per_class"],
+                )
 
     def filter_dataset(self, dataset, num_classes, samples_per_class):
         """
@@ -124,7 +132,11 @@ class BaseDataModule(pl.LightningDataModule, ABC):
                     generator=torch.Generator().manual_seed(self.seed),
                 )
             ]
-            selected_indices = class_indices[:samples_per_class]
+            selected_indices = (
+                class_indices[:samples_per_class]
+                if samples_per_class > 0
+                else class_indices
+            )
             sample_indices.extend(selected_indices.tolist())
 
         return Subset(dataset, sample_indices)
