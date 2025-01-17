@@ -22,5 +22,5 @@ hydra:
     gpus_per_task: 1
     array_parallelism: 1
     setup: 
-      - conda activate symmnew
+      - conda activate genaug
 
