@@ -25,4 +25,8 @@ lightning_logs
 autoencoders
 classifiers
 
+venv
+.DS_Store
+*.egg
+
 prova.ipynb

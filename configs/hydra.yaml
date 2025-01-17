@@ -11,3 +11,16 @@ hydra:
   sweep:
     dir: multirun/${name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
     subdir: cfg:${hydra.job.override_dirname}/seed=${seed}
+  launcher:
+    submitit_folder: ${hydra.sweep.dir}/.submitit/%j
+    timeout_min: 86400
+    cpus_per_task: 10
+    mem_gb: 10
+    nodes: 1
+    name: ${hydra.job.name}
+    partition: "long_gpu"
+    gpus_per_task: 1
+    array_parallelism: 1
+    setup: 
+      - conda activate symmnew
+

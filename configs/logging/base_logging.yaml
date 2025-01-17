@@ -1,7 +1,7 @@
 logging:
   wandb_logging: true
-  wandb_project: "generative-data-augmentation"
-  wandb_entity: "mattia-scardecchia"
+  wandb_project: "Generative-Data-Augmentation"
+  wandb_entity: "willinki-bocconi-university"
   log_freq: 10 # steps
   image_log_freq: 500 # steps
   watch_freq: 500 # steps

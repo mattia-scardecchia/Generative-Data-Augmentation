@@ -1,0 +1,37 @@
+defaults:
+  - /../hydra@_here_
+  - base_training_v0
+  - _self_
+
+# =====================
+dataset: "cifar10"
+name: "cifar10-resnet9"
+experiment_type: "train_classifier"
+device: "cuda"
+seed: 44
+# =====================
+
+model:
+  architecture: "resnet9"
+  config:
+    pretrained: false
+    freeze_backbone: false
+
+training:
+  label_smoothing: 0.0
+  epochs: 500
+  weight_decay: 0.01
+  reduce_lr:
+    do: true
+    mode: "min"
+    factor: 0.1
+    patience: 10
+
+early_stopping:
+  do: true
+  monitor: "val/loss"
+  mode: "min"
+  patience: 50.0
+
+data:
+  batch_size: 256

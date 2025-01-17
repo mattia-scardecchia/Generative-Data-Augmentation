@@ -7,7 +7,7 @@ import hydra
 import pytorch_lightning as pl
 import wandb
 from omegaconf import DictConfig, OmegaConf
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, early_stopping
 from pytorch_lightning.loggers import WandbLogger
 from torch import nn
 
@@ -47,6 +47,13 @@ def train(
         save_last=config["logging"]["checkpoints"]["save_last"],
     )
     callbacks.append(checkpoint_callback)
+    if config["early_stopping"]["do"]:
+        early_stopping_callback = EarlyStopping(
+            monitor=config["early_stopping"]["monitor"],
+            mode=config["early_stopping"]["mode"],
+            patience=config["early_stopping"]["patience"],
+        )
+        callbacks.append(early_stopping_callback)
 
     logger, run_id = None, None
     if config["logging"]["wandb_logging"]:

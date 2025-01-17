@@ -4,7 +4,7 @@ import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 import wandb
-from torch import nn
+from torch import nn, optim
 from yaml import safe_load as yaml_safe_load
 
 from . import create_classifier
@@ -125,7 +125,16 @@ class ImageClassifier(pl.LightningModule):
             weight_decay=self.weight_decay,
             eps=self.adam_eps,
         )
-        return optimizer
+        if self.config["training"]["reduce_lr"]["do"]:
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer=optimizer,
+                mode=self.config["training"]["reduce_lr"]["mode"],
+                factor=self.config["training"]["reduce_lr"]["factor"],
+                patience=self.config["training"]["reduce_lr"]["patience"],
+            )
+        else:
+            scheduler = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=1.0)
+        return optimizer, scheduler
 
     def on_load_checkpoint(self, checkpoint):
         """
