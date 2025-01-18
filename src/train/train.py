@@ -11,8 +11,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, early_st
 from pytorch_lightning.loggers import WandbLogger
 from torch import nn
 
-from src.dataset.factory import get_datamodule
-from src.utils import set_seed
+from ..dataset.factory import get_datamodule
+from ..utils import set_seed
 
 
 def train(
