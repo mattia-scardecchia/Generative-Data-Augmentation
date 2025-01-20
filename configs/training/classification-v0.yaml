@@ -5,8 +5,9 @@ defaults:
 
 # =====================
 dataset: "cifar10"
-name: "cifar10-resnet9"
+name: "cifar10-resnet9-noaugment"
 experiment_type: "train_classifier"
+description: "training a resnet9 on cifar10 withouth data augmentation"
 device: "cuda"
 seed: 44
 # =====================
@@ -18,12 +19,14 @@ model:
     freeze_backbone: false
 
 training:
+  save_model_artifact: true
   label_smoothing: 0.0
   epochs: 500
   weight_decay: 0.01
   reduce_lr:
     do: true
     mode: "min"
+    monitor: "val/loss"
     factor: 0.1
     patience: 10
 

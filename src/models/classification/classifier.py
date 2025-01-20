@@ -119,22 +119,26 @@ class ImageClassifier(pl.LightningModule):
         self.logger.experiment.log({f"{prefix}-images": images})
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(
+        opt_conf = {}
+        opt_conf["optimizer"] = torch.optim.AdamW(
             self.parameters(),
             lr=self.lr,
             weight_decay=self.weight_decay,
             eps=self.adam_eps,
         )
         if self.config["training"]["reduce_lr"]["do"]:
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer=optimizer,
+            opt_conf["scheduler"] = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer=opt_conf["optimizer"],
                 mode=self.config["training"]["reduce_lr"]["mode"],
                 factor=self.config["training"]["reduce_lr"]["factor"],
                 patience=self.config["training"]["reduce_lr"]["patience"],
             )
+            opt_conf["monitor"] = self.config["training"]["reduce_lr"]["monitor"]
         else:
-            scheduler = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=1.0)
-        return optimizer, scheduler
+            opt_conf["scheduler"] = torch.optim.lr_scheduler.ConstantLR(
+                opt_conf["optimizer"], factor=1.0
+            )
+        return opt_conf
 
     def on_load_checkpoint(self, checkpoint):
         """

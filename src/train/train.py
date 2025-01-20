@@ -2,16 +2,18 @@ import json
 import logging
 import os
 from typing import Optional
+from datetime import datetime
 
 import hydra
 import pytorch_lightning as pl
 import wandb
 from omegaconf import DictConfig, OmegaConf
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping, early_stopping
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 from torch import nn
 
 from ..dataset.factory import get_datamodule
+from ..models.callbacks.save_model import SaveModelCallback
 from ..utils import set_seed
 
 
@@ -54,6 +56,15 @@ def train(
             patience=config["early_stopping"]["patience"],
         )
         callbacks.append(early_stopping_callback)
+    if config["training"]["save_model_artifact"]:
+        current_date_time = datetime.now().strftime("%Y-%m-%d--%H-%M")
+        artifact_name = config["name"] + current_date_time
+        save_after_training_callback = SaveModelCallback(
+            artifact_name=artifact_name,
+            artifact_metadata=OmegaConf.to_container(config),
+            description=config["description"],
+        )
+        callbacks.append(save_after_training_callback)
 
     logger, run_id = None, None
     if config["logging"]["wandb_logging"]:
