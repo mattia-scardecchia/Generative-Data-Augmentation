@@ -14,22 +14,11 @@ model:
   architecture: "conv"
   config:
     block_type: "resnet"
-    hidden_dims: [64, 64]
-    downsample: [2, 2]
-    latent_dim: 32 # there is an additional convolution before going to z. maybe we should fix this
-    z_channels: 3
-    kl_weight: 0.01
-
-#model:
-#  type: "klae" #[klae, ae, <thats it for now>]
-#  architecture: "conv"
-#  config:
-#    block_type: "resnet"
-#    hidden_dims: [64, 128, 256, 512]
-#    downsample: [2, 2, 2, None]
-#    latent_dim: 512 # there is an additional convolution before going to z. maybe we should fix this
-#    z_channels: 3
-#    kl_weight: 0.01
+    hidden_dims: [64, 128, 256, 512]
+    downsample: [2, 2, 2, None]
+    latent_dim: 512 # there is an additional convolution before going to z. maybe we should fix this
+    z_channels: 24
+    kl_weight: 0.1
 
 training:
   save_model_artifact: true
