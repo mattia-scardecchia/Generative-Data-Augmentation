@@ -3,28 +3,49 @@ defaults:
   - base_training
   - _self_
 
-name: "prova"
-experiment_type: "train_autoencoder"
+name: "resnet9-vae-cifar10"
+experiment_type: "train_vae_autoencoder"
+description: "training a resnet9 variational autoencoder on cifar10"
 device: "cuda"
 seed: 100
 
-# model:
-#   architecture: "mlp"
-#   config:
-#     hidden_dims: [512, 256] # dimensions for residual blocks
-#     latent_dim: 128 # bottleneck dimension
-#     block_kwargs:
-#       dropout: 0.1
-#       activation: "ReLU"
-
 model:
+  type: "klae" #[klae, ae, <thats it for now>]
   architecture: "conv"
   config:
-    block_type: "convnext"
-    hidden_dims: [128, 128]
-    latent_dim: 32
+    block_type: "resnet"
+    hidden_dims: [64, 64]
     downsample: [2, 2]
-    # block_kwargs:
+    latent_dim: 32 # there is an additional convolution before going to z. maybe we should fix this
+    z_channels: 3
+    kl_weight: 0.01
+
+#model:
+#  type: "klae" #[klae, ae, <thats it for now>]
+#  architecture: "conv"
+#  config:
+#    block_type: "resnet"
+#    hidden_dims: [64, 128, 256, 512]
+#    downsample: [2, 2, 2, None]
+#    latent_dim: 512 # there is an additional convolution before going to z. maybe we should fix this
+#    z_channels: 3
+#    kl_weight: 0.01
 
 training:
+  save_model_artifact: true
+  label_smoothing: 0.0
+  epochs: 500
+  weight_decay: 0.001
   loss: "mse"
+  reduce_lr:
+    do: true
+    mode: "min"
+    monitor: "val/loss"
+    factor: 0.1
+    patience: 10
+
+early_stopping:
+  do: true
+  monitor: "val/loss"
+  mode: "min"
+  patience: 50.0
