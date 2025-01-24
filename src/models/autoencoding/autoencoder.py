@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple, Literal, Any, List
 
 import pytorch_lightning as pl
 import torch
@@ -7,6 +7,10 @@ import wandb
 import yaml
 
 from . import create_autoencoder
+
+# structured output for encode, decode, etc...
+# (x,), (z, mu, logvar) are examples
+AutoencoderOutput = Tuple[torch.Tensor, *Tuple[Any, ...]]
 
 dataset_metadata = yaml.safe_load(open("src/dataset/metadata.yaml", "r"))
 
@@ -42,7 +46,7 @@ class Autoencoder(pl.LightningModule):
             case "mse":
                 self.loss_fn = nn.MSELoss()
             case "bce":
-                self.loss_fn = nn.BCELoss()
+                self.loss_fn = nn.BCEWithLogitsLoss()
             case "l1":
                 self.loss_fn = nn.L1Loss()
             case "smoothl1":
@@ -61,49 +65,48 @@ class Autoencoder(pl.LightningModule):
         self.dataset_metadata["width"] = input_shape[-1]
         self.dataset_metadata["num_channels"] = input_shape[-3]
 
-    def forward(self, x):
+    def forward(self, x: AutoencoderOutput) -> AutoencoderOutput:
         """
         Handles flattening of inputs if necessary. Output shape is the same as input shape.
         """
-        input_shape = x.shape
+        img, *args = x
+        input_shape = img.shape
         if self.flatten_inputs:
-            x = x.flatten(1)
-        out = self.decoder(self.encoder(x))
-        return out.reshape(input_shape)
+            img = img.flatten(1)
+            x = (img, *args)
+        out_img, *args = self.decode(self.encode(x))
+        return (out_img.reshape(input_shape), *args)
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
+        *x, y = batch
         x_hat = self(x)
-        loss = self.loss_fn(x_hat, x)
+        loss = self.compute_loss(x_hat, x, when="train")
 
-        self.log("train/loss", loss, on_step=True, on_epoch=True)
         if (
             self.config["logging"]["image_log_freq"] is not None
             and batch_idx % self.config["logging"]["image_log_freq"] == 0
         ):
-            self._log_images(x, y, x_hat, "train")
+            self._log_images(x[0], y, x_hat[0], "train")
 
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
+        *x, y = batch
         x_hat = self(x)
-        loss = self.loss_fn(x_hat, x)
+        loss = self.compute_loss(x_hat, x, when="val")
 
-        self.log("val/loss", loss, on_epoch=True)
         if self.config["logging"]["image_log_freq"] is not None and batch_idx == 0:
-            self._log_images(x, y, x_hat, "val")
+            self._log_images(x[0], y, x_hat[0], "val")
 
         return loss
 
     def test_step(self, batch, batch_idx):
-        x, y = batch
+        *x, y = batch
         x_hat = self(x)
-        loss = self.loss_fn(x_hat, x)
+        loss = self.compute_loss(x_hat, x, when="test")
 
-        self.log("test/loss", loss, on_epoch=True)
         if self.config["logging"]["image_log_freq"] is not None and batch_idx == 0:
-            self._log_images(x, y, x_hat, "test")
+            self._log_images(x[0], y, x_hat[0], "test")
 
         return loss
 
@@ -141,17 +144,51 @@ class Autoencoder(pl.LightningModule):
         )
         return optimizer
 
-    def encode(self, x):
+    def encode(self, x: AutoencoderOutput) -> AutoencoderOutput:
         """
         Encode input images into latent space.
-        """
-        return self.encoder(x)
+        update: instead of a single tensor, we allow to return a tuple
+        of tensors for better compatibility, for example with KLAE
+        we use huggingface-like logic
 
-    def decode(self, z):
+        args
+        ----
+        - x: 1-uple like (x,) where x is the image
+
+        returns
+        -------
+        - (z,): 1-uple with latent representation
         """
-        Decode latent vectors into images.
+        x_in, *_ = x
+        return (self.encoder(x_in),)
+
+    def decode(self, z: AutoencoderOutput) -> AutoencoderOutput:
         """
-        return self.decoder(z)
+        the decode method should take the output of self.encode and produce an
+        output as tuple.
+        args
+        ----
+        - z: 1-uple like (z,), containing the latent
+        returns
+        -------
+        - (x_hat,): 1-uple with reconstructed image
+        """
+        z_out, *_ = z
+        return (self.decoder(z_out),)
+
+    def compute_loss(
+        self,
+        x_hat: AutoencoderOutput,
+        x: AutoencoderOutput,
+        when: Literal["train", "val", "test"],
+        log: bool = True,
+    ) -> torch.Tensor:
+        """isolating this step for better compatibility with variants. also logs"""
+        loss = self.loss_fn(x_hat[0], x[0])
+        if log:
+            on_step = True if when == "train" else False
+            self.log(f"{when}/loss", loss, on_step=on_step, on_epoch=True)
+        return loss
 
     @staticmethod
     def default_config():
