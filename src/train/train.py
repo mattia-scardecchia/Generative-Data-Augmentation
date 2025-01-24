@@ -68,6 +68,20 @@ def train(
 
     logger, run_id = None, None
     if config["logging"]["wandb_logging"]:
+        #
+        # hotfix: wandb tries to "watch" the model, but if it contains
+        # uninitialized parameters (such as in the lazyconv layers),
+        # this raises an error. we can avoid this by forcing a single
+        # batch into the model before watching. maybe there is a better
+        # way of doing dis
+        #
+        datamodule.setup(stage=None)
+        batch = next(iter(datamodule.train_dataloader()))
+        model.train()
+        model.forward(batch)
+        #
+        # end of hotfix
+        #
         logger = WandbLogger(
             project=config["logging"]["wandb_project"],
             entity=config["logging"]["wandb_entity"],
