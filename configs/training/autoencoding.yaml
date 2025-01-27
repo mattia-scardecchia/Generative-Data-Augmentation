@@ -15,7 +15,7 @@ model:
   config:
     block_type: "resnet"
     hidden_dims: [64, 128, 256, 512]
-    downsample: [2, 2, 2, None]
+    downsample: [2, 2, 2, null]
     latent_dim: 512 # there is an additional convolution before going to z. maybe we should fix this
     z_channels: 24
     kl_weight: 0.1
