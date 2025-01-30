@@ -11,7 +11,7 @@ seed: 100
 training:
   epochs: 25
   val_freq: 1.0 # fraction of epoch (float) or steps (int)
-  learning_rate: 0.001
+  learning_rate: 0.0005
   gradient_clip_val: 1.0
   weight_decay: 0.0001
   adam_eps: 0.0000001
