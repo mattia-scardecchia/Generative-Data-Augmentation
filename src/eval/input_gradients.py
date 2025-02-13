@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 from src.eval.flatness import perturb_weights
 from src.utils import prepare_tensor_image_for_plot
+from ..models.autoencoding.autoencoder import Autoencoder, AutoencoderOutput
 
 
 def compute_proba_grads_wrt_data(
@@ -17,7 +18,7 @@ def compute_proba_grads_wrt_data(
     targets: list[int],
     logit_transform=None,
     device=None,
-    autoencoder=None,
+    autoencoder: Optional[Autoencoder] = None,
     epsilon: float = 1e-3,  # ignored if autoencoder is not provided
 ):
     """
@@ -76,16 +77,19 @@ def _compute_grads_no_autoencoder(
 
 def _compute_grads_with_autoencoder(
     classifier: nn.Module,
-    autoencoder: nn.Module,
-    data: torch.Tensor,
+    autoencoder: Autoencoder,
+    data: torch.Tensor | AutoencoderOutput,
     targets: list[int],
     logit_transform,
     epsilon: float,
 ) -> tuple[dict[int, torch.Tensor], dict[int, torch.Tensor]]:
     with torch.no_grad():
-        latent = autoencoder.encode(data)
+        if isinstance(data, torch.Tensor):
+            data = (data,)
+        latent_elements = autoencoder.encode(data)
+        latent: torch.Tensor = latent_elements[0]
     latent.requires_grad = True
-    data_hat = autoencoder.decode(latent)
+    data_hat = autoencoder.decode(latent_elements)[0]
     logits = classifier(data_hat)
     obj = logit_transform(logits)
     grads, finite_diffs = {}, {}
@@ -181,9 +185,12 @@ def optimize_proba_wrt_data(
     classifier = classifier.to(device).eval()
     data = data.to(device)
     if autoencoder is None:
-        trajectory, objectives, grad_norms, final_imgs = (
-            _optimize_proba_wrt_data_no_autoencoder(classifier, data, targets, config)
-        )
+        (
+            trajectory,
+            objectives,
+            grad_norms,
+            final_imgs,
+        ) = _optimize_proba_wrt_data_no_autoencoder(classifier, data, targets, config)
         latent_trajectory, final_latents = None, None
     else:
         autoencoder = autoencoder.to(device).eval()
