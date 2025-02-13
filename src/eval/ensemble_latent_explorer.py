@@ -24,34 +24,22 @@ class EnsembleLatentExplorer:
     def __init__(
         self,
         autoencoder: Autoencoder,
-        save_dir: Union[str, Path],
         classifiers: List[nn.Module],
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
     ):
         """
         :param autoencoder: The pre-trained autoencoder.
-        :param save_dir: Directory to save any outputs.
         :param classifiers: A list of identical classifiers (pre-trained on the same data).
         :param device: Device to run computations on.
         """
         self.autoencoder = autoencoder.to(device).eval()
 
         # Check that all classifiers share the same parameter names.
-        parameters_names: List[Set[str]] = [
-            {name for name, _ in classifier.named_parameters()}
-            for classifier in classifiers
-        ]
-        assert all(
-            param_names == parameters_names[0] for param_names in parameters_names
-        ), "All classifiers must have the same parameter names."
         self.classifiers = nn.ModuleList(
             [classifier.to(device).eval() for classifier in classifiers]
         )
         self.softmax = nn.Softmax(dim=-1)
         self.device = device
-
-        self.save_dir = Path(save_dir)
-        self.save_dir.mkdir(parents=True, exist_ok=True)
 
     def __call__(
         self, data: torch.Tensor, targets: List[int], lr: float = 0.001, *encode_args
@@ -210,47 +198,24 @@ class EnsembleLatentExplorer:
         return is_in.all(dim=-1).int()  # 1 if all classifiers are fooled
 
     def _log(
-        self,
-        images: torch.Tensor,
-        delta_data: Mapping[str, torch.Tensor],
-        latent_grads: Mapping[str, Union[torch.Tensor, dict]],
-        update_norm: float,
-        boundary_mask: torch.Tensor,
-        iteration: int,
+        self, new_data, delta_data, latent_grads, image_has_crossed_boundary, step
     ):
-        """
-        Logs images and metrics (e.g. gradient and update norms) to Weights & Biases.
-
-        :param images: Tensor of images with shape (..., C, H, W).
-        :param delta_data: Dictionary with finite-difference information.
-        :param latent_grads: Dictionary with gradient information.
-        :param update_norm: Average norm of the latent update.
-        :param boundary_mask: Binary tensor with the same leading dims as predictions.
-        :param iteration: Current iteration number.
-        """
-        metrics = {
-            "iteration": iteration,
-            "update_norm": update_norm,
-            "boundary_rate": boundary_mask.float().mean().item(),
-        }
-        if "avg" in latent_grads:
-            grad_avg_norm = latent_grads["avg"].norm(p=2, dim=-1).mean().item()
-            metrics["grad_avg_norm"] = grad_avg_norm
-        if "per_target" in latent_grads:
-            for target, norm in latent_grads["per_target"].items():
-                metrics[f"grad_norm_target_{target}"] = norm
-        if "avg" in delta_data:
-            finite_diff_norm = delta_data["avg"].norm(p=2, dim=-1).mean().item()
-            metrics["finite_diff_norm_avg"] = finite_diff_norm
-
-        # Reshape images to a 4D tensor (N, C, H, W) for logging.
-        images_for_grid = images.reshape(-1, *images.shape[-3:])
-        grid = vutils.make_grid(
-            images_for_grid.cpu(), nrow=min(8, images_for_grid.shape[0])
-        )
         wandb.log(
             {
-                f"Iteration_{iteration}/images": wandb.Image(grid),
-                **{f"Iteration_{iteration}/{k}": v for k, v in metrics.items()},
-            }
+                "images/updated": [wandb.Image(img) for img in new_data.cpu()],
+                "metrics/grad_norm": torch.stack(
+                    [g.norm() for g in latent_grads.values()]
+                )
+                .mean()
+                .item(),
+                "metrics/update_norm": torch.stack(
+                    [d.norm() for d in delta_data.values()]
+                )
+                .mean()
+                .item(),
+                "metrics/boundary_crossed": image_has_crossed_boundary.float()
+                .mean()
+                .item(),
+            },
+            step=step,
         )
