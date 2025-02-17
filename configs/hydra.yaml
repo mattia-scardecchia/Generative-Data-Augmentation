@@ -20,7 +20,7 @@ hydra:
     name: ${hydra.job.name}
     partition: "long_gpu"
     gpus_per_task: 1
-    array_parallelism: 1
+    array_parallelism: 4
     setup: 
       - conda activate genaug
 
