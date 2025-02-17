@@ -8,7 +8,7 @@ data:
   num_workers: 8 # dataloader workers
   train_val_split: 0.8
   transforms:
-    normalize: true # has to agree between train and test
+    normalize: false # has to agree between train and test
     train:
       RandomHorizontalFlip:
         p: 0.0
