@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Tuple
 
 import pytorch_lightning as pl
 import torch
@@ -140,6 +140,41 @@ class BaseDataModule(pl.LightningDataModule, ABC):
             sample_indices.extend(selected_indices.tolist())
 
         return Subset(dataset, sample_indices)
+
+    def extract_data(
+        self, class_idx: int, num_images: int, split: str = "train", random: bool = True
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Extract the first num_images images from the train or test set with class equal to class_.
+        If random is True, the dataset is shuffled before sampling.
+
+        Args:
+            class_ (int): The class of images to extract.
+            num_images (int): The number of images to extract.
+            split (str, optional): The split of the dataset to extract from. Defaults to "train".
+            random (bool, optional): Whether to shuffle the dataset before sampling. Defaults to True.
+
+        Returns:
+            Subset: A subset of the dataset with the extracted images.
+        """
+        if split == "train":
+            dataset: Dataset = self.train_dataset  # type: ignore
+        elif split == "test":
+            dataset: Dataset = self.test_dataset  # type: ignore
+        else:
+            raise ValueError("allowed splits: [train, test]")
+        if random:
+            indices = torch.randperm(
+                len(dataset), generator=torch.Generator().manual_seed(self.seed)
+            ).tolist()
+            dataset = Subset(dataset, indices)
+        labels = torch.tensor([dataset[i][1] for i in range(len(dataset))])
+        class_indices = torch.where(labels == class_idx)[0].tolist()
+        num_images = min(num_images, len(class_indices))
+        class_indices = class_indices[:num_images]
+        images = torch.stack([dataset[i][0] for i in class_indices])
+        labels = labels[class_indices]
+        return images, labels
 
     def create_train_val_split(self, full_train_dataset):
         """Create train/val split from training dataset"""
