@@ -1,0 +1,19 @@
+defaults:
+  - /../data/base_data@_here_
+  - /../logging/base_logging@_here_
+  - _self_
+
+seed: 44
+
+classifier_tag: "resnet9-cifar"
+autoencoder_tag: "vaes"
+
+perturb:
+  target_classes: [8]
+  lr: 0.001
+
+data:
+  starting_class: 0
+  sample_size: 1 # different from 1 results in JOINT PERTURBATION
+  split: "train"
+  random: false

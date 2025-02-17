@@ -5,6 +5,7 @@ import logging
 import torch
 import torch.nn as nn
 import wandb
+from tqdm import tqdm
 import torchvision.utils as vutils
 
 from ..models.autoencoding.autoencoder import Autoencoder, AutoencoderOutput
@@ -19,7 +20,7 @@ class EnsembleLatentExplorer:
     the boundary only if every classifier in the ensemble predicts one of the target classes.
     """
 
-    MAX_ITER = 100
+    MAX_ITER = 10000
 
     def __init__(
         self,
@@ -68,7 +69,7 @@ class EnsembleLatentExplorer:
                 "Not all classifiers agree on the starting class for some images."
             )
         image_has_crossed_boundary = torch.zeros_like(original_preds[..., 0])
-        for i in range(self.MAX_ITER):
+        for i in tqdm(range(self.MAX_ITER)):
             update_mask = 1 - image_has_crossed_boundary
             (
                 new_data,
@@ -83,8 +84,8 @@ class EnsembleLatentExplorer:
             self._log(
                 new_data,
                 delta_data,
+                current_preds,
                 latent_grads,
-                update_norm,
                 image_has_crossed_boundary,
                 i,
             )
@@ -156,7 +157,9 @@ class EnsembleLatentExplorer:
                 latent.grad.zero_()
             mask = update_mask.to(latent.device).float()
             # Increase the probability for the target class.
-            # We compute the loss of the ensemble
+            # We compute the loss of the ensemble ACROSS IMAGES
+            # if more than one image is present we are averaging also over images
+            # equivalent of joint training for networks
             objective = -probs[..., target].mean(dim=-2)
             # images that already fool all classifiers are not updated
             objective = (objective * mask).sum()
@@ -177,7 +180,7 @@ class EnsembleLatentExplorer:
         return (
             perturbed_data_hat,
             {"avg": finite_diff.cpu()},
-            {"avg": grad_avg.cpu(), "per_target": grad_norms},
+            {"avg": grad_avg.cpu()},
             update_norm,
         )
 
@@ -195,14 +198,23 @@ class EnsembleLatentExplorer:
         target_tensor = torch.tensor(targets, device=preds.device)
         # Check for each classifier if its prediction is in the target set.
         is_in = torch.isin(preds, target_tensor)  # shape: (..., n_classifiers)
-        return is_in.all(dim=-1).int()  # 1 if all classifiers are fooled
+        return is_in.all(dim=-1, keepdim=True).int()  # 1 if all classifiers are fooled
 
     def _log(
-        self, new_data, delta_data, latent_grads, image_has_crossed_boundary, step
+        self,
+        new_data,
+        delta_data,
+        predictions,
+        latent_grads,
+        image_has_crossed_boundary,
+        step,
     ):
         wandb.log(
             {
-                "images/updated": [wandb.Image(img) for img in new_data.cpu()],
+                "images/updated": [
+                    wandb.Image(img, caption=f"predictions: {predictions}")
+                    for img, predictions in zip(new_data.cpu(), predictions.cpu())
+                ],
                 "metrics/grad_norm": torch.stack(
                     [g.norm() for g in latent_grads.values()]
                 )
