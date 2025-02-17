@@ -12,24 +12,19 @@ class KLAutoencoder(Autoencoder):
 
     def __init__(self, config, input_shape: Optional[tuple[int]] = None):
         super().__init__(config, input_shape)
+        assert (
+            config["model"]["config"]["latent_dim"] % 2 == 0
+        ), "latent_dim must be even"
         model_config = config["model"]["config"]
         self.kl_weight = model_config["kl_weight"]
-        self.latent_to_mu = nn.Conv2d(
-            model_config["latent_dim"], model_config["z_channels"], 1
-        )
-        self.latent_to_logvar = nn.Conv2d(
-            model_config["latent_dim"], model_config["z_channels"], 1
-        )
-        self.z_to_latent = nn.ConvTranspose2d(
-            model_config["z_channels"], model_config["latent_dim"], 1
-        )
+        self.z_channels = config["model"]["config"]["latent_dim"] // 2
 
     def encode(self, x: AutoencoderOutput) -> AutoencoderOutput:
         """given x, returns z after reparametrization. also returns mu and
         logvar"""
         latent = self.encoder(x[0])
-        mu = self.latent_to_mu(latent)
-        logvar = self.latent_to_logvar(latent)
+        mu = latent[..., : self.z_channels, :, :]
+        logvar = latent[..., self.z_channels :, :, :]
         z = self._reparametrize(mu, logvar)
         return (z, mu, logvar)
 
