@@ -15,6 +15,16 @@ def create_autoencoder(
     """
     Create encoder and decoder models based on the specified architecture and config.
     """
+    match config["final_nonlinearity"]:
+        case "sigmoid":
+            nonlinearity = nn.Sigmoid()
+        case "relu":
+            nonlinearity = nn.ReLU()
+        case "identity":
+            nonlinearity = nn.Identity()
+        case _:
+            value = config["final_nonlinearity"]
+            raise ValueError(f"Unknown final nonlinearity: {value}")
     match architecture.lower():
         case "mlp":
             block_kwargs = config.get("block_kwargs", {})
@@ -53,4 +63,4 @@ def create_autoencoder(
         case _:
             raise ValueError(f"Unknown architecture: {architecture}")
 
-    return encoder, decoder
+    return encoder, nn.Sequential(decoder, nonlinearity)

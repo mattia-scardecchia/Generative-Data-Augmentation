@@ -16,9 +16,9 @@ model:
     block_type: "resnet"
     hidden_dims: [64, 128, 256, 512]
     downsample: [2, 2, 2, null]
-    latent_dim: 512 # there is an additional convolution before going to z. maybe we should fix this
-    z_channels: 24
+    latent_dim: 512 # dimension of z
     kl_weight: 0.1
+    final_nonlinearity: "sigmoid"
 
 training:
   save_model_artifact: true
