@@ -13,7 +13,7 @@ hydra:
     subdir: cfg:${hydra.job.override_dirname}/seed=${seed}
   launcher:
     submitit_folder: ${hydra.sweep.dir}/.submitit/%j
-    timeout_min: 4310
+    timeout_min: 1420
     cpus_per_task: 10
     mem_gb: 64
     nodes: 1
