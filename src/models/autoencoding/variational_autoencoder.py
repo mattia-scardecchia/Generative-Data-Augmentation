@@ -31,8 +31,7 @@ class KLAutoencoder(Autoencoder):
     def decode(self, z: AutoencoderOutput) -> AutoencoderOutput:
         """given z, mu, logvar, decodes z to x_hat, passes mu and logvar"""
         z_out, mu, logvar = z
-        latent = self.z_to_latent(z_out)
-        return (self.decoder(latent), mu, logvar)
+        return (self.decoder(z_out), mu, logvar)
 
     def compute_loss(
         self,
