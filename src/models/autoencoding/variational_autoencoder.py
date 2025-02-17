@@ -18,6 +18,9 @@ class KLAutoencoder(Autoencoder):
         model_config = config["model"]["config"]
         self.kl_weight = model_config["kl_weight"]
         self.z_channels = config["model"]["config"]["latent_dim"] // 2
+        self.z_to_latent = nn.ConvTranspose2d(
+            self.z_channels, config["model"]["config"]["latent_dim"], 1
+        )
 
     def encode(self, x: AutoencoderOutput) -> AutoencoderOutput:
         """given x, returns z after reparametrization. also returns mu and
@@ -31,7 +34,8 @@ class KLAutoencoder(Autoencoder):
     def decode(self, z: AutoencoderOutput) -> AutoencoderOutput:
         """given z, mu, logvar, decodes z to x_hat, passes mu and logvar"""
         z_out, mu, logvar = z
-        return (self.decoder(z_out), mu, logvar)
+        latent = self.z_to_latent(z_out)
+        return (self.decoder(latent), mu, logvar)
 
     def compute_loss(
         self,
