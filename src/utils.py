@@ -1,13 +1,19 @@
 import math
+from pathlib import Path
+import itertools
 import random
-from typing import Optional
+from typing import Optional, List, Tuple, Type
+import logging
 
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig
+import wandb
 
 from src.dataset.factory import get_datamodule
+
+logger = logging.getLogger(__name__)
 
 
 def get_layers(model):
@@ -127,3 +133,59 @@ def plot_image_grid(
 
     plt.tight_layout()
     return fig
+
+
+def get_runs_from_tag(id_tag: str, project: str, entity: str) -> List:
+    """downloads artifacts (models) from all runs with a specific tag. returns a list
+    of wandb runs"""
+    api = wandb.Api()
+    runs = api.runs(f"{entity}/{project}", filters={"tags": {"$in": [id_tag]}})
+    return runs
+
+
+def get_model_artifact_from_run(
+    wandb_run,
+    model_class: Type[torch.nn.Module],
+    weights_only: bool = True,
+    device: str = "cuda" if torch.cuda.is_available() else "cpu",
+    **model_init_kwargs,
+) -> Tuple[torch.nn.Module, DictConfig]:
+    artifacts = wandb_run.logged_artifacts()
+    model_artifacts = [artifact for artifact in artifacts if artifact.type == "model"]
+    if len(model_artifacts) > 1:
+        raise ValueError("Multiple models logged during the same run. Unable to decide")
+    model_artifact = model_artifacts[0]
+    artifact_file = Path(model_artifact.download()) / model_artifact.name.split(":")[-2]
+    try:
+        model = model_class(**model_init_kwargs)
+    except TypeError as e:
+        logger.warning(
+            f"Tried to load model from used provided arguments but got: <<{e}>>"
+        )
+        logger.warning("Trying with metadata")
+        model = model_class(config=model_artifact.metadata)
+    model.load_state_dict(
+        torch.load(
+            artifact_file, weights_only=weights_only, map_location=torch.device(device)
+        )
+    )
+    return model, model_artifact.metadata
+
+
+def iter_model_artifacts_from_runs(
+    wandb_runs: List,
+    model_class: List | Type[torch.nn.Module],
+    weights_only: bool = True,
+    device: str = "cuda" if torch.cuda.is_available() else "cpu",
+    **model_init_kwargs,
+):
+    if not isinstance(model_class, list):
+        model_classes = itertools.repeat(model_class)
+    else:
+        assert len(model_class) == len(wandb_runs)
+        model_classes = model_class
+    for wandb_run, model_class in zip(wandb_runs, model_classes):
+        yield get_model_artifact_from_run(
+            wandb_run, model_class, weights_only, device, **model_init_kwargs
+        )
+        ## TODO: if model_init_kwargs is different for each model, implement
