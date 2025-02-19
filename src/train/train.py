@@ -78,7 +78,7 @@ def train(
         datamodule.setup(stage=None)
         batch = next(iter(datamodule.train_dataloader()))
         model.train()
-        model.forward(batch)
+        model.forward(batch[0])
         #
         # end of hotfix
         #
